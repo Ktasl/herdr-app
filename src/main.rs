@@ -214,6 +214,11 @@ pub fn open_main(core: std::sync::Arc<hc::Core>, requests: async_channel::Receiv
                 app_owns_titlebar_drag: cfg!(target_os = "macos"),
                 // Herdr Dev and other side-by-side builds get their own dock icon.
                 app_id: Some(std::env::var("HERDR_APP_ID").ok().filter(|s| !s.is_empty()).unwrap_or_else(|| "herdr-app".into())),
+                window_background: if cfg!(target_os = "macos") && crate::settings::load_person().map(|p| p.window_blur).unwrap_or(false) {
+                    gpui::WindowBackgroundAppearance::Blurred
+                } else {
+                    gpui::WindowBackgroundAppearance::Opaque
+                },
                 ..Default::default()
             };
             cx.open_window(options, |window, cx| cx.new(|cx| window::AppWindow::new(core, requests, window, cx)))

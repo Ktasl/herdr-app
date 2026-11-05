@@ -259,11 +259,11 @@ export default class MachineAdd extends View {
     const st = this.state[target];
     const done = this.isAdded(target);
     const right = done
-      ? h_flex().gap(5).items_center().text_size(12).text_color(t.ansi2).child(svg(I("circle-check")).size(13)).child("Added")
+      ? h_flex().gap(5).items_center().text_size(12).text_color(t.ansi2).child(svg(I("circle-check")).size(13)).child("已新增")
       : st === "adding"
-        ? h_flex().gap(6).items_center().text_size(12).text_color(t.muted).child(svg(I("spinner")).size(12).text_color(t.working).spin(900)).child("Connecting")
+        ? h_flex().gap(6).items_center().text_size(12).text_color(t.muted).child(svg(I("spinner")).size(12).text_color(t.working).spin(900)).child("連線中…")
         : st === "terminal"
-          ? div().text_size(12).text_color(t.blocked).child("Waiting in its terminal")
+          ? div().text_size(12).text_color(t.blocked).child("在終端機中等待")
           : div()
               .id(`ma-add-${target}`)
               .px(10)
@@ -279,7 +279,7 @@ export default class MachineAdd extends View {
               .cursor_pointer()
               .hover((s) => s.bg(t.hover))
               .on_click((_e, cx) => this.add(target, cx))
-              .child("Add");
+              .child("新增");
     const idle = !done && !st;
     return v_flex()
       .flex_none()
@@ -315,16 +315,16 @@ export default class MachineAdd extends View {
       .p(18)
       .bg(t.popover)
       .text_color(t.foreground)
-      .child(h_flex().items_center().child(div().flex_1().text_size(15).font_semibold().child("Add a machine")).child(div().text_size(11).text_color(t.dim).child("Esc")))
+      .child(h_flex().items_center().child(div().flex_1().text_size(15).font_semibold().child("新增遠端主機")).child(div().text_size(11).text_color(t.dim).child("Esc")))
       .child(
         div()
           .pt(6)
           .text_size(12.8)
           .line_height("19px")
           .text_color(t.muted)
-          .child("A VPS, a Mac mini, a box at home: Herdr reaches it over ssh, and agents there keep running while your laptop sleeps."),
+          .child("VPS、Mac mini 或家中電腦：Herdr 透過 SSH 進行連線，即便筆電休眠，主機上的 Agent 仍會持續執行。"),
       )
-      .child(div().pt(16).pb(6).text_size(11.5).font_medium().text_color(t.dim).child(hosts.length ? "From your ssh config" : "Your ssh config lists no hosts"))
+      .child(div().pt(16).pb(6).text_size(11.5).font_medium().text_color(t.dim).child(hosts.length ? "來自你的 SSH 設定檔" : "你的 SSH 設定檔中沒有主機"))
       .child(
         v_flex()
           .id("ma-hosts")
@@ -334,11 +334,11 @@ export default class MachineAdd extends View {
           .overflow_y_scroll()
           .children(
             this.hosts === null
-              ? [div().px(10).py(8).text_size(12.5).text_color(t.dim).child("Reading ~/.ssh/config…")]
-              : hosts.map((h) => this.row(t, h.alias, h.alias, [h.user, h.hostname].filter(Boolean).join("@") || (h.aliases.length ? `also ${h.aliases.join(", ")}` : ""))),
+              ? [div().px(10).py(8).text_size(12.5).text_color(t.dim).child("正在讀取 ~/.ssh/config…")]
+              : hosts.map((h) => this.row(t, h.alias, h.alias, [h.user, h.hostname].filter(Boolean).join("@") || (h.aliases.length ? `也包括 ${h.aliases.join(", ")}` : ""))),
           ),
       )
-      .child(div().pt(14).pb(6).text_size(11.5).font_medium().text_color(t.dim).child("Or type how ssh reaches it"))
+      .child(div().pt(14).pb(6).text_size(11.5).font_medium().text_color(t.dim).child("或輸入 SSH 連線位址"))
       .child(
         h_flex()
           .gap(8)
@@ -371,7 +371,7 @@ export default class MachineAdd extends View {
               .when(!this.typed.trim(), (el) => el.opacity(0.4))
               .cursor_pointer()
               .on_click((_e, cx) => this.add(this.typed, cx))
-              .child("Add"),
+              .child("新增"),
           ),
       )
       .when(Boolean(this.typed.trim() && this.state[this.typed.trim()]), (el) => el.child(div().pt(6).text_size(12).text_color(t.blocked).child(String(this.state[this.typed.trim()]))));

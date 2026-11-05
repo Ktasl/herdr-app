@@ -261,8 +261,8 @@ export default class Worktree extends View {
             .gap(8)
             .items_center()
             .child(div().flex_1().min_w(0).truncate().text_color(t.foreground).child(c.branch ?? "detached"))
-            .when(c.main, (el) => el.child(div().flex_none().text_size(11).text_color(t.dim).child("main checkout")))
-            .when(Boolean(there), (el) => el.child(div().flex_none().text_size(11).text_color(t.accent).child("open")))
+            .when(c.main, (el) => el.child(div().flex_none().text_size(11).text_color(t.dim).child("主要簽出")))
+            .when(Boolean(there), (el) => el.child(div().flex_none().text_size(11).text_color(t.accent).child("已開啟")))
             .when(!there && c.at > 0, (el) => el.child(div().flex_none().text_size(11).text_color(t.dim).child(ago(c.at)))),
         )
         .child(div().truncate().text_size(11.5).text_color(t.dim).child(tilde(c.path, this.userHome ?? "")));
@@ -277,9 +277,9 @@ export default class Worktree extends View {
       .gap(10)
       .bg(t.popover)
       .text_size(13)
-      .child(h_flex().child(div().flex_1().font_semibold().text_color(t.foreground).child(`Open worktree${r ? ` of ${r.name}` : ""}`)).child(div().text_size(11).text_color(t.dim).child(r ? count : "")))
+      .child(h_flex().child(div().flex_1().font_semibold().text_color(t.foreground).child(`開啟工作樹 (Worktree)${r ? ` · ${r.name}` : ""}`)).child(div().text_size(11).text_color(t.dim).child(r ? count : "")))
       .when(r === undefined || (r && this.list === undefined), (el) => el.child(div().text_color(t.muted).child("\u2026")))
-      .when(r === null, (el) => el.child(div().text_color(t.muted).child(`${this.folder ? tilde(this.folder, this.userHome ?? "") : "This folder"} is not in a git repository.`)))
+      .when(r === null, (el) => el.child(div().text_color(t.muted).child(`${this.folder ? tilde(this.folder, this.userHome ?? "") : "This folder"} 不在 git 儲存庫中。`)))
       .when(Boolean(r && this.list), (el) =>
         el
           .child(Input.new(this.input).h(32).px(10).items_center().rounded(6).border(1).border_color(this.inputFocused ? t.accent : t.input).bg(t.background).text_color(t.foreground))
@@ -294,12 +294,12 @@ export default class Worktree extends View {
                   .size_full()
                   .overflow_y_scroll()
                   .children(rows.map(row))
-                  .when(rows.length === 0, (el) => el.child(div().p(10).text_color(t.dim).child("No matching worktrees."))),
+                  .when(rows.length === 0, (el) => el.child(div().p(10).text_color(t.dim).child("沒有相符的工作樹 (Worktree)。"))),
               )
               .child(Scrollbar.vertical("wt-list").absolute().inset_0()),
           ),
       )
-      .child(h_flex().justify_end().text_size(11).text_color(t.dim).child("\u2191\u2193 choose \u00b7 \u21b5 open \u00b7 esc close"));
+      .child(h_flex().justify_end().text_size(11).text_color(t.dim).child("↑↓ 選擇 · ↵ 開啟 · esc 關閉"));
   }
 
   render(cx) {
@@ -308,16 +308,16 @@ export default class Worktree extends View {
     const remove = props()?.action === "remove";
     const s = this.space();
     const r = this.repo;
-    const title = remove ? `Remove worktree ${s?.name ?? ""}?` : `New worktree${r ? ` of ${r.name}` : ""}`;
+    const title = remove ? `確定要移除工作樹 ${s?.name ?? ""} 嗎？` : `新增工作樹 (Worktree)${r ? ` · ${r.name}` : ""}`;
     const detail =
       r === undefined
         ? "…"
         : r === null
-          ? `${this.folder ? tilde(this.folder, this.userHome) : "This folder"} is not in a git repository.`
+          ? `${this.folder ? tilde(this.folder, this.userHome) : "This folder"} 不在 git 儲存庫中。`
           : remove
             ? !r.linked
-              ? "This is the repository's main checkout, not a worktree."
-              : `Closes the space and deletes ${tilde(r.top, this.userHome)}. The branch stays.`
+              ? "這是儲存庫的主要簽出目錄，不是工作樹。"
+              : `將關閉此工作區並刪除 ${tilde(r.top, this.userHome)}。分支仍會保留。`
             : `A new space on a checkout in ${tilde(ROOT(this.userHome), this.userHome)}/${r.name}/. A branch that exists is checked out; a new one starts from here.`;
     const blocked = !r || (remove && !r.linked);
     return v_flex()
@@ -331,7 +331,7 @@ export default class Worktree extends View {
       .text_size(13)
       .child(div().font_semibold().text_color(t.foreground).child(title))
       .child(div().text_color(t.muted).child(detail))
-      .when(remove && this.dirty, (el) => el.child(div().text_color(t.blocked).child("It has uncommitted changes: they will be lost.")))
+      .when(remove && this.dirty, (el) => el.child(div().text_color(t.blocked).child("包含未提交的變更：這些變更將會遺失。")))
       .when(remove && this.unpushed.length > 0, (el) => el.child(div().text_color(t.blocked).child(`Submodule ${this.unpushed.join(", ")} has commits that aren't pushed anywhere: they will be lost.`)))
       .when(!remove && !blocked, (el) =>
         el.child(
@@ -353,7 +353,7 @@ export default class Worktree extends View {
           .justify_end()
           .text_size(11)
           .text_color(t.dim)
-          .child(this.busy ? "working…" : blocked ? "esc close" : remove ? "↵ remove · esc cancel" : "↵ create · esc cancel"),
+          .child(this.busy ? "處理中…" : blocked ? "esc 關閉" : remove ? "↵ 移除 · esc 取消" : "↵ 建立 · esc 取消"),
       );
   }
 }

@@ -42,7 +42,7 @@ export default class WhatsNew extends View {
       })
       .child(h_flex().flex_none().h(52).cursor_grab().pl(20).pr(12).gap(10).items_center().border_b(1).border_color(t.border)
         .child(image("frame/welcome/herdr.png").w(24).h(24).rounded(6).flex_none())
-        .child(div().text_size(14).font_semibold().text_color(t.foreground).child("What's new in Herdr"))
+        .child(div().text_size(14).font_semibold().text_color(t.foreground).child("Herdr 最新消息"))
         .child(div().flex_1())
         .child(div().id("wn-close").size(26).rounded(7).flex().items_center().justify_center()
           .text_color(t.muted).cursor_pointer().hover(s => s.bg(t.hover).text_color(t.foreground))
@@ -55,9 +55,9 @@ export default class WhatsNew extends View {
         .child(Scrollbar.vertical("wn-body").mode("always").absolute().inset_0()))
       .child(h_flex().flex_none().px(16).py(12).gap(8).items_center().border_t(1).border_color(t.border)
         .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
-        .child(div().pl(6).flex_1().text_size(12).text_color(t.dim).child("Something off or missing? Settings › Send feedback."))
+        .child(div().pl(6).flex_1().text_size(12).text_color(t.dim).child("遇到問題或缺少功能？設定 › 提供意見回饋"))
         .child(h_flex().id("wn-done").h(30).px(12).items_center().rounded(8).cursor_pointer()
           .text_size(12.5).font_medium().bg(t.solid).text_color(t.solid_foreground).hover(s => s.opacity(0.88))
-          .on_click(() => this.done()).child("Got it")));
+          .on_click(() => this.done()).child("我知道了")));
   }
 }

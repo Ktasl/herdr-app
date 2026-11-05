@@ -33,41 +33,42 @@ function items(p, git) {
       // Once they go to the program, Shift+right-click still opens this menu.
       const toProgram = term?.labels?.["herdr.right-click"] === "program";
       return [
-        ["Split right", "pane.split", { direction: "right", pane: tg.pane }],
-        ["Split down", "pane.split", { direction: "down", pane: tg.pane }],
-        ["Zoom", "pane.zoom", { pane: tg.pane }],
+        ["向右分割", "pane.split", { direction: "right", pane: tg.pane }],
+        ["向下分割", "pane.split", { direction: "down", pane: tg.pane }],
+        ["放大窗格", "pane.zoom", { pane: tg.pane }],
         ...(term
           ? [
               toProgram
-                ? ["Use Herdr right-click menu", "terminal.right_click", { terminal: term.address, to: "menu" }]
-                : ["Send right-clicks to pane", "terminal.right_click", { terminal: term.address, to: "program" }],
+                ? ["使用 Herdr 右鍵選單", "terminal.right_click", { terminal: term.address, to: "menu" }]
+                : ["將右鍵點擊傳送至窗格", "terminal.right_click", { terminal: term.address, to: "program" }],
             ]
           : []),
-        ...(parent ? [[`Send back to ${parent.name || parent.address}`, "terminal.park", { terminal: term.address }]] : []),
-        ["Close pane", "pane.close", { pane: tg.pane }],
+        ...(parent ? [[`移回至 ${parent.name || parent.address}`, "terminal.park", { terminal: term.address }]] : []),
+        ["關閉窗格", "pane.close", { pane: tg.pane }],
       ];
     }
     case "tab":
       return [
-        ["Rename", "tab.rename", { id: tg.id }],
-        ["New tab", "tab.new", { space: tg.space }],
-        ["Close", "tab.close", { id: tg.id }],
+        ["重新命名", "tab.rename", { id: tg.id }],
+        ["新增分頁", "tab.new", { space: tg.space }],
+        ["關閉分頁", "tab.close", { id: tg.id }],
       ];
     case "space":
       return [
-        ["Rename", "space.rename", { id: tg.id }],
-        ...(git ? [["New worktree", "worktree", { space: tg.id, action: "new" }], ["Open worktree", "worktree", { space: tg.id, action: "open" }]] : []),
-        ...(git === "linked" ? [["Remove worktree", "worktree", { space: tg.id, action: "remove" }]] : []),
-        ["Close", "space.close", { id: tg.id }],
+        ["重新命名", "space.rename", { id: tg.id }],
+        ...(git ? [["新增工作樹 (Worktree)", "worktree", { space: tg.id, action: "new" }], ["開啟工作樹 (Worktree)", "worktree", { space: tg.id, action: "open" }]] : []),
+        ...(git === "linked" ? [["移除工作樹 (Worktree)", "worktree", { space: tg.id, action: "remove" }]] : []),
+        ["關閉工作區", "space.close", { id: tg.id }],
       ];
     default:
       return [
-        ["New space", "space.new", {}],
-        ["Keybinds", "app.help", {}],
-        ["Theme: graphite", "app.theme", { name: "graphite" }],
-        ["Theme: ink", "app.theme", { name: "ink" }],
-        ["Theme: moss", "app.theme", { name: "moss" }],
-        ["Theme: atom one dark", "app.theme", { name: "atom-one-dark" }],
+        ["新增工作區", "space.new", {}],
+        ["按鍵綁定 (快捷鍵)", "app.help", {}],
+        ["佈景主題: Antigravity (暖調原色)", "app.theme", { name: "anti-dark" }],
+        ["佈景主題: 石墨 (graphite)", "app.theme", { name: "graphite" }],
+        ["佈景主題: 水墨 (ink)", "app.theme", { name: "ink" }],
+        ["佈景主題: 苔蘚 (moss)", "app.theme", { name: "moss" }],
+        ["佈景主題: Atom One Dark", "app.theme", { name: "atom-one-dark" }],
       ];
   }
 }

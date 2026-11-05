@@ -6,12 +6,12 @@ import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { keys, props, closeOverlay, theme } from "herdr";
 
 const GROUPS = [
-  ["spaces", /^space\./],
-  ["tabs", /^tab\./],
-  ["panes", /^pane\./],
-  ["agents", /^agent\./],
-  ["terminal", /^terminal\.|^send:/],
-  ["window", /./],
+  ["工作區 (Spaces)", /^space\./],
+  ["分頁 (Tabs)", /^tab\./],
+  ["窗格 (Panes)", /^pane\./],
+  ["AI 代理 (Agents)", /^agent\./],
+  ["終端機 (Terminal)", /^terminal\.|^send:/],
+  ["視窗管理 (Window)", /./],
 ];
 
 function label(action) {
@@ -24,7 +24,7 @@ function label(action) {
 export default class Help extends View {
   init(_props, cx) {
     this.filter = "";
-    this.input = InputState.new({ placeholder: "Type to filter…" });
+    this.input = InputState.new({ placeholder: "輸入以搜尋快速鍵…" });
     this.input.on("change", (_e, cx) => { this.filter = this.input.value(); cx.notify(); });
     this.input.focus();
     cx.timer.after(600, () => this.input.focus());
@@ -57,7 +57,7 @@ export default class Help extends View {
           .h(22)
           .items_center()
           .justify_between()
-          .child(div().text_size(15).font_semibold().text_color(t.foreground).child("Keybinds"))
+          .child(div().text_size(15).font_semibold().text_color(t.foreground).child("按鍵綁定 (快捷鍵)"))
           .child(div().text_size(11).text_color(t.dim).child("Esc")),
       )
       .child(Input.new(this.input).h(36).flex_none().px(10).rounded(9).border_1().border_color(t.accent).bg(t.background).text_size(12.8).text_color(t.foreground))

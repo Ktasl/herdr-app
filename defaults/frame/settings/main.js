@@ -7,19 +7,27 @@ import { hc, run, theme, themes, fonts, updates, telemetry, settings, layouts, s
 const I = (name) => `frame/settings/${name}.svg`;
 
 const SECTIONS = [
-  { id: "look", title: "Look", icon: "palette" },
-  ...(window()?.platform === "macos" ? [{ id: "keyboard", title: "Keyboard", icon: "keyboard" }] : []),
-  { id: "machines", title: "Machines", icon: "server" },
-  { id: "alerts", title: "Alerts", icon: "bell" },
-  { id: "updates", title: "Updates", icon: "refresh" },
-  { id: "privacy", title: "Privacy", icon: "shield" },
+  { id: "look", title: "外觀樣式", icon: "palette" },
+  ...(window()?.platform === "macos" ? [{ id: "keyboard", title: "鍵盤快速鍵", icon: "keyboard" }] : []),
+  { id: "machines", title: "遠端主機", icon: "server" },
+  { id: "alerts", title: "通知提示", icon: "bell" },
+  { id: "updates", title: "軟體更新", icon: "refresh" },
+  { id: "privacy", title: "隱私權", icon: "shield" },
 ];
 
-const LOOKS = { main: "Herdr", terminals: "Terminals", win98: "Herdr 98" };
+const LOOKS = { main: "Herdr 原生", terminals: "極簡終端", win98: "復古 98" };
+const THEME_NAMES = {
+  "anti-dark": "Antigravity (暖調原色)",
+  "atom-one-dark": "Atom One Dark",
+  "graphite": "石墨黑 (graphite)",
+  "ink": "水墨黑 (ink)",
+  "moss": "苔蘚綠 (moss)",
+  "paper": "明亮白 (paper)",
+};
 const APPEARANCES = [
-  [null, "System"],
-  ["light", "Light"],
-  ["dark", "Dark"],
+  [null, "跟隨系統"],
+  ["light", "淺色模式"],
+  ["dark", "深色模式"],
 ];
 
 // What the app uses when settings.json names no font (settings.rs).
@@ -373,7 +381,7 @@ export default class Settings extends View {
               h_flex()
                 .gap(5)
                 .items_center()
-                .child(div().text_size(12.5).text_color(on ? t.foreground : t.muted).child(name.replace(/-/g, " ")))
+                .child(div().text_size(12.5).text_color(on ? t.foreground : t.muted).child(THEME_NAMES[name] ?? name.replace(/-/g, " ")))
                 .when(on, (el) => el.child(svg(I("check")).size(12).text_color(t.accent))),
             );
         }),
@@ -468,7 +476,7 @@ export default class Settings extends View {
           this.row(
             t,
             title,
-            own(which, family, def) ? "This layout sets its own; yours shows in the others." : null,
+            own(which, family, def) ? "此版面佈局已自訂字型；您設定的字型將套用於其他版面。" : null,
             h_flex()
               .gap(8)
               .items_center()
@@ -480,46 +488,58 @@ export default class Settings extends View {
         .when(this.picking === which, (el) => el.child(this.fontList(t, which, def)));
     return v_flex()
       .w_full()
-      .child(this.heading(t, "Layout"))
+      .child(this.heading(t, "版面佈局"))
       .child(this.layoutPicker(t, cx))
       .child(div().h(18))
-      .child(this.heading(t, "Theme"))
-      .child(this.row(t, "Appearance", "Light or dark, or as your system is now.", this.appearancePicker(t, cx)))
-      .child(div().pt(12).pb(8).text_size(12.5).text_color(t.dim).child("For the layout you're in: each layout keeps its own light and dark theme."))
-      .child(div().pb(6).text_size(12.5).font_medium().text_color(t.muted).child("Dark"))
-      .child(this.themePicker(t, false))
-      .child(div().pt(10).pb(6).text_size(12.5).font_medium().text_color(t.muted).child("Light"))
-      .child(this.themePicker(t, true))
-      .child(div().h(18))
-      .child(this.heading(t, "Size and fonts"))
+      .child(this.heading(t, "佈景主題"))
+      .child(this.row(t, "深淺外觀", "淺色、深色，或跟隨系統設定。", this.appearancePicker(t, cx)))
       .child(
         this.row(
           t,
-          "Zoom",
-          "Everything: terminals, panels, text.",
+          "視窗毛玻璃 (半透明)",
+          "讓視窗背景與側邊欄穿透顯示 macOS 桌面模糊毛玻璃質感。",
+          this.toggle(t, "st-blur", Boolean(this.person.window_blur), (_e, cx) =>
+            this.change((p) => {
+              p.window_blur = !p.window_blur;
+            }, cx),
+          ),
+        ),
+      )
+      .child(div().pt(12).pb(8).text_size(12.5).text_color(t.dim).child("每個版面佈局均可獨立設定其淺色與深色主題。"))
+      .child(div().pb(6).text_size(12.5).font_medium().text_color(t.muted).child("深色主題"))
+      .child(this.themePicker(t, false))
+      .child(div().pt(10).pb(6).text_size(12.5).font_medium().text_color(t.muted).child("淺色主題"))
+      .child(this.themePicker(t, true))
+      .child(div().h(18))
+      .child(this.heading(t, "縮放與字型"))
+      .child(
+        this.row(
+          t,
+          "介面縮放",
+          "縮放包含終端機、面板與所有文字。",
           h_flex()
             .gap(8)
             .items_center()
             .child(this.stepper(t, "st-zoom", `${Math.round(s.zoom * 100)}%`, () => run("app.zoom_out"), () => run("app.zoom_in")))
-            .child(this.button(t, "st-zoom-reset", "Reset", () => run("app.zoom_reset"))),
+            .child(this.button(t, "st-zoom-reset", "重設", () => run("app.zoom_reset"))),
         ),
       )
-      .child(fontRow("font", "font_size", "Terminal font", s.font_family, DEFAULT_FONT, s.font_size))
-      .child(fontRow("ui_font", null, "Interface font", s.ui_font_family, DEFAULT_UI_FONT));
+      .child(fontRow("font", "font_size", "終端機字型", s.font_family, DEFAULT_FONT, s.font_size))
+      .child(fontRow("ui_font", null, "介面字型", s.ui_font_family, DEFAULT_UI_FONT));
   }
 
   keyboard(t) {
     const choices = [
-      ["auto", "Automatic (Alt on US keyboards)"],
-      ["on", "Alt"],
-      ["off", "Types characters"],
-      ["left", "Left Option is Alt"],
-      ["right", "Right Option is Alt"],
+      ["auto", "自動（美式鍵盤為 Alt）"],
+      ["on", "作為 Alt 鍵"],
+      ["off", "輸入特殊字元"],
+      ["left", "僅左 Option 為 Alt"],
+      ["right", "僅右 Option 為 Alt"],
     ];
     return v_flex()
       .w_full()
-      .child(this.heading(t, "Option key"))
-      .child(div().pb(12).text_size(13).text_color(t.dim).child("Use Option for terminal shortcuts or to type accents and special characters."))
+      .child(this.heading(t, "Option 鍵設定"))
+      .child(div().pb(12).text_size(13).text_color(t.dim).child("設定 Option 鍵作為終端機快捷鍵 (Meta) 或是輸入特殊字元。"))
       .children(choices.map(([value, label]) => {
         const on = (this.person.option_as_alt ?? "auto") === value;
         return h_flex()
@@ -615,7 +635,7 @@ export default class Settings extends View {
     if (busy) controls.child(svg("mods/workspace-chrome/spinner.svg").size(12).text_color(t.working).spin(900)).child(div().text_size(12).text_color(t.muted).child(busy === "update" ? "Updating…" : busy === "rename" ? "Renaming…" : "Removing…"));
     else {
       if (this.olderCore(m.version, localVersion)) controls.child(this.button(t, `st-m-update-${m.name}`, "Update", (_e, cx) => this.machineAction(m.name, "update", cx)));
-      for (const [action, label] of [["rename", "Rename"], ["rm", "Remove"]]) {
+      for (const [action, label] of [["rename", "重新命名"], ["rm", "移除"]]) {
         controls.child(this.button(t, `st-m-${action}-${m.name}`, label, (_e, cx) => {
           this.machineEdit = { machine: m.name, action, name: m.name };
           if (action === "rename") {
@@ -633,16 +653,16 @@ export default class Settings extends View {
         .child(div().w(7).h(7).flex_none().rounded(4).bg(color))
         .child(v_flex().flex_1().min_w(0).gap(3)
           .child(div().text_size(14).text_color(t.foreground).child(m.name))
-          .child(div().text_size(12.5).text_color(t.dim).child(`${m.target ?? ""} · ${state} · ${m.version ? `hc ${m.version}` : "hc version unknown"}`)))
+          .child(div().text_size(12.5).text_color(t.dim).child(`${m.target ?? ""} · ${state} · ${m.version ? `hc ${m.version}` : "hc 版本未知"}`)))
         .child(controls.flex_none()));
-    if (busy === "update") row.child(div().text_size(12.5).text_color(t.dim).child("Copying this computer's herdr-core. Its terminals keep running."));
+    if (busy === "update") row.child(div().text_size(12.5).text_color(t.dim).child("正在複製此電腦的 herdr-core。終端機將持續在背景運行。"));
     if (edit && !busy) {
       const cancel = this.button(t, `st-m-cancel-${m.name}`, "Cancel", (_e, cx) => { this.machineEdit = null; this.handle.focus(); cx.notify(); });
       if (edit.action === "rm") row.child(v_flex().gap(8)
-        .child(div().text_size(12.5).text_color(t.muted).child(`Remove ${m.name}? Its terminals keep running there.`))
+        .child(div().text_size(12.5).text_color(t.muted).child(`確定要移除 ${m.name} 嗎？該主機上的終端機仍會保持運行。`))
         .child(h_flex().gap(6).child(cancel).child(this.button(t, `st-m-confirm-${m.name}`, "Remove machine", (_e, cx) => this.machineAction(m.name, "rm", cx)))));
       else row.child(v_flex().gap(6)
-        .child(div().text_size(12).text_color(t.dim).child("New name (addresses using the old name stop working)"))
+        .child(div().text_size(12).text_color(t.dim).child("新名稱（使用舊名稱的位址將失效）"))
         .child(h_flex().gap(6).items_center()
           .child(Input.new(this.renameInput).flex_1().min_w(0).h(32).px(10).rounded(7).border_1().border_color(this.renameFocused ? t.accent : t.input).bg(t.background).text_size(13).text_color(t.foreground))
           .child(cancel).child(this.button(t, `st-m-save-${m.name}`, "Save", (_e, cx) => this.machineAction(m.name, "rename", cx, edit.name)))));
@@ -654,15 +674,15 @@ export default class Settings extends View {
   machines(t) {
     const version = updates().core.version;
     return v_flex().w_full()
-      .child(this.heading(t, "Machines"))
-      .child(div().pb(8).text_size(12.5).line_height("18px").text_color(t.dim).child("Your computers, reached over ssh. Their terminals keep running when you disconnect."))
-      .child(this.row(t, "This computer", `Connected · ${version ? `hc ${version}` : "hc version unknown"}`, div().w(7).h(7).rounded(4).bg(t.ansi2)))
+      .child(this.heading(t, "遠端主機清單"))
+      .child(div().pb(8).text_size(12.5).line_height("18px").text_color(t.dim).child("透過 SSH 連線的遠端主機。即使斷線，終端機與 Agent 仍會持續在背景執行。"))
+      .child(this.row(t, "這部電腦 (本機)", `Connected · ${version ? `hc ${version}` : "hc 版本未知"}`, div().w(7).h(7).rounded(4).bg(t.ansi2)))
       .children((this.machineList ?? []).map((m) => this.machineRow(t, m, version)))
-      .when(this.machineList === null && !this.machineError, (el) => el.child(h_flex().py(14).gap(8).items_center().child(svg("mods/workspace-chrome/spinner.svg").size(12).text_color(t.working).spin(900)).child(div().text_size(12.5).text_color(t.dim).child("Reading machines…"))))
-      .when(this.machineList?.length === 0, (el) => el.child(div().py(14).text_size(12.5).text_color(t.dim).child("No other machines yet.")))
+      .when(this.machineList === null && !this.machineError, (el) => el.child(h_flex().py(14).gap(8).items_center().child(svg("mods/workspace-chrome/spinner.svg").size(12).text_color(t.working).spin(900)).child(div().text_size(12.5).text_color(t.dim).child("正在讀取主機資訊…"))))
+      .when(this.machineList?.length === 0, (el) => el.child(div().py(14).text_size(12.5).text_color(t.dim).child("尚未新增其他主機。")))
       .when(Boolean(this.machineError), (el) => el.child(div().py(10).text_size(12.5).text_color(t.blocked).child(this.machineError)))
       .when(Boolean(this.machineNotice), (el) => el.child(div().py(10).text_size(12.5).text_color(t.ansi2).child(this.machineNotice)))
-      .child(h_flex().pt(16).child(this.button(t, "st-m-add", "Add a machine", () => run("mod.open", { name: "machine-add" }))));
+      .child(h_flex().pt(16).child(this.button(t, "st-m-add", "新增遠端主機", () => run("mod.open", { name: "machine-add" }))));
   }
 
   // Alerts ---------------------------------------------------------------
@@ -670,21 +690,21 @@ export default class Settings extends View {
   alerts(t) {
     const sounds = this.person.sounds ?? {};
     const on = sounds.enabled !== false;
-    const file = (f) => (f ? f.split(/[\\/]/).pop() : "Herdr's sound");
+    const file = (f) => (f ? f.split(/[\\/]/).pop() : "Herdr 預設音效");
     return v_flex()
       .w_full()
-      .child(this.heading(t, "Sounds"))
+      .child(this.heading(t, "提示音效"))
       .child(
         this.row(
           t,
-          "Play sounds",
-          "When an agent needs you, and when one finishes while you're not looking. A note shows in the corner either way.",
+          "播放提示音",
+          "當 Agent 需要操作，或在背景完成工作時播放音效。畫面上亦會顯示通知。",
           this.toggle(t, "st-sounds", on, (_e, cx) => this.change((p) => (p.sounds = { ...(p.sounds ?? {}), enabled: !on }), cx)),
         ),
       )
-      .child(this.row(t, "An agent needs you", file(sounds.blocked), this.button(t, "st-play-blocked", "Play", () => playSound("blocked"))))
-      .child(this.row(t, "An agent finished", file(sounds.done), this.button(t, "st-play-done", "Play", () => playSound("done"))))
-      .child(div().pt(12).text_size(12.5).line_height("18px").text_color(t.dim).child("Want your own sounds? Ask your agent to set sounds.done and sounds.blocked in settings.json to an MP3."));
+      .child(this.row(t, "Agent 等待操作時", file(sounds.blocked), this.button(t, "st-play-blocked", "試聽", () => playSound("blocked"))))
+      .child(this.row(t, "Agent 完成工作時", file(sounds.done), this.button(t, "st-play-done", "試聽", () => playSound("done"))))
+      .child(div().pt(12).text_size(12.5).line_height("18px").text_color(t.dim).child("想要自訂音效嗎？可在 settings.json 中設定 sounds.done 與 sounds.blocked 的 MP3 檔案路徑。"));
   }
 
   // Updates --------------------------------------------------------------
@@ -695,10 +715,8 @@ export default class Settings extends View {
       const d = new Date(secs * 1000);
       return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
     };
-    const checked = u.checked ? ` Checked at ${at(u.checked)}.` : "";
-    const result = u.checking ? "Checking\u2026" : u.checked
-      ? `Up to date.${checked}`
-      : "No successful check. Check your connection and try again.";
+    const checked = u.checked ? ` 檢查時間：${at(u.checked)}。` : "";
+    const result = u.checking ? "正在檢查更新…" : u.checked ? `已是最新版本。${checked}` : "尚未檢查。請檢查網路連線後重試。";
     // Pressed: "Checking\u2026" while it looks, then "Up to date" for a moment
     // (a find changes the row instead). One per row: an element shows once.
     const asked = this.asked && Date.now() - this.asked < 3000;
@@ -706,10 +724,10 @@ export default class Settings extends View {
       !u.checks
         ? null
         : u.checking && this.asked
-          ? div().px(12).py(5).text_size(13).text_color(t.dim).child("Checking\u2026")
+          ? div().px(12).py(5).text_size(13).text_color(t.dim).child("正在檢查…")
           : asked && u.checked && !u.checking
-            ? div().px(12).py(5).text_size(13).text_color(t.ansi2).child("\u2713 Up to date")
-            : this.button(t, id, "Check now", (_e, cx) => {
+            ? div().px(12).py(5).text_size(13).text_color(t.ansi2).child("\u2713 已是最新版本")
+            : this.button(t, id, "立即檢查", (_e, cx) => {
                 this.asked = Date.now();
                 run("app.check_updates");
                 cx.notify();
@@ -717,32 +735,32 @@ export default class Settings extends View {
     const primary = (id, label, f) =>
       div().id(id).px(12).py(5).rounded(7).cursor_pointer().bg(t.accent).text_color(t.accent_foreground).text_size(13).font_semibold().hover((s) => s.opacity(0.9)).on_click(f).child(label);
     const app = !u.app.updates
-      ? ["A build from source: it updates with git, not here.", null]
+      ? ["由原始碼建置：請透過 git 更新，此處不提供自動更新。", null]
       : u.app.ready
-        ? [`${u.app.ready} is ready. Restart to switch now; it also switches when you quit.`, primary("st-app-update", "Restart to update", () => run("app.update"))]
+        ? [`${u.app.ready} 已就緒。立即重新啟動以套用更新；退出時亦會自動套用。`, primary("st-app-update", "重新啟動以更新", () => run("app.update"))]
         : [result, check("st-check-app")];
     const c = u.core;
     const core = c.managed
-      ? [`Managed by ${c.managed}: update it there.`, null]
+      ? [`由 ${c.managed} 管理：請於該處進行更新。`, null]
       : c.updating
-        ? ["Updating\u2026 your terminals keep running.", null]
+        ? ["正在更新… 終端機將持續在背景運行。", null]
         : c.error
-          ? [`The update failed: ${c.error}`, primary("st-core-retry", "Try again", () => run("app.update_core"))]
+          ? [`更新失敗：${c.error}`, primary("st-core-retry", "重試", () => run("app.update_core"))]
           : c.ready
-            ? [`${c.ready} is ready. Your terminals keep running through it.`, primary("st-core-update", "Update herdr-core", () => run("app.update_core"))]
+            ? [`${c.ready} 已就緒。更新期間終端機仍會保持運行。`, primary("st-core-update", "更新 herdr-core", () => run("app.update_core"))]
             : u.checks
               ? [result, check("st-check-core")]
-              : ["Not checked: a build from source looks for no updates.", null];
+              : ["未檢查：由原始碼建置的版本不進行自動更新。", null];
     return v_flex()
       .w_full()
       .child(this.heading(t, "Herdr"))
       .child(this.row(t, `Herdr ${u.app.version}`, app[0], h_flex().gap(8).flex_none()
-        .child(this.button(t, "st-whats-new", "What's new", () => { closeOverlay(props()?.overlay); run("app.whats_new"); }))
+        .child(this.button(t, "st-whats-new", "最新消息", () => { closeOverlay(props()?.overlay); run("app.whats_new"); }))
         .when(Boolean(app[1]), (el) => el.child(app[1]))))
       .child(div().h(18))
       .child(this.heading(t, "herdr-core"))
       .child(this.row(t, `herdr-core ${c.version ?? ""}`, core[0], core[1] ?? div()))
-      .child(div().pt(12).text_size(12.5).line_height("18px").text_color(t.dim).child("Herdr looks for both every hour and tells you in the corner. herdr-core runs your terminals, so they keep running through its updates."));
+      .child(div().pt(12).text_size(12.5).line_height("18px").text_color(t.dim).child("Herdr 每小時會自動檢查更新並在角落提示。herdr-core 負責運行終端機，更新時終端機將持續執行不中斷。"));
   }
 
 
@@ -778,12 +796,12 @@ export default class Settings extends View {
     const why = s?.off_because ? `Off for now: ${s.off_because} is set where Herdr started.` : null;
     const body = v_flex()
       .w_full()
-      .child(this.heading(t, "Usage data"))
+      .child(this.heading(t, "使用情形統計"))
       .child(
         this.row(
           t,
-          "Share anonymous usage data",
-          why ?? "Once a day: which agents and features you use, how many spaces and tabs, your system and Herdr's version. Never what's in your terminals, never names of files, folders or projects.",
+          "分享匿名使用數據",
+          why ?? "每日一次：包含您使用的 Agent 與功能、工作區與分頁數量、系統資訊及 Herdr 版本。絕不包含終端機內容，亦不包含檔案、資料夾或專案名稱。",
           this.toggle(t, "st-telemetry", on, (_e, cx) =>
             this.change((p) => {
               if (on) p.telemetry = false;
@@ -795,20 +813,20 @@ export default class Settings extends View {
       .child(
         this.row(
           t,
-          "What we send",
-          s && !s.sends ? "This build never sends: it's built from source. You can still see what a release would send." : "Exactly what leaves your computer, word for word.",
-          this.button(t, "st-telemetry-show", this.showData ? "Hide" : "Show", (_e, cx) => {
+          "傳送內容檢視",
+          s && !s.sends ? "此建置版本永不傳送：由原始碼建置。您仍可在此檢視正式版會傳送的內容。" : "完整顯示傳送出此電腦的所有資料。",
+          this.button(t, "st-telemetry-show", this.showData ? "隱藏" : "顯示", (_e, cx) => {
             this.showData = !this.showData;
             cx.notify();
           }),
         ),
       );
     if (!this.showData) return body;
-    if (!s?.enabled) return body.child(div().pt(14).text_size(13).text_color(t.dim).child("Nothing is collected or sent while it's off."));
+    if (!s?.enabled) return body.child(div().pt(14).text_size(13).text_color(t.dim).child("關閉時不會收集或傳送任何資料。"));
     return body
-      .children(s.queued.map((r, i) => this.report(t, `st-tq-${i}`, `Waiting to send: ${r.day}`, "Sent as is, soon.", r)))
-      .when(Boolean(s.draft), (el) => el.child(this.report(t, "st-td", "Today so far", "A draft: it changes until the day ends (UTC), then goes out once.", s.draft)))
-      .when(Boolean(s.last_sent), (el) => el.child(this.report(t, "st-tl", `Last sent: ${s.last_sent.report.day}`, `Sent ${at(s.last_sent.at)}.`, s.last_sent.report)));
+      .children(s.queued.map((r, i) => this.report(t, `st-tq-${i}`, `待傳送：${r.day}`, "稍後將如實傳送。", r)))
+      .when(Boolean(s.draft), (el) => el.child(this.report(t, "st-td", "今日至今紀錄", "草稿：持續更新直到當日結束 (UTC)，隨後傳送一次。", s.draft)))
+      .when(Boolean(s.last_sent), (el) => el.child(this.report(t, "st-tl", `上次傳送：${s.last_sent.report.day}`, `傳送於 ${at(s.last_sent.at)}。`, s.last_sent.report)));
   }
 
   // ----------------------------------------------------------------------
@@ -824,7 +842,7 @@ export default class Settings extends View {
       .gap(2)
       .border_r(1)
       .border_color(t.border)
-      .child(div().px(10).pt(6).pb(12).text_size(16).font_semibold().text_color(t.foreground).child("Settings"))
+      .child(div().px(10).pt(6).pb(12).text_size(16).font_semibold().text_color(t.foreground).child("偏好設定"))
       .children(
         SECTIONS.map((s) => {
           const on = s.id === this.section;
@@ -877,7 +895,7 @@ export default class Settings extends View {
         cx.stop_propagation();
         cx.notify();
       })
-      .child(nav.h_full().child(div().flex_1()).child(this.button(t, "st-feedback", "Send feedback", () => { closeOverlay(props()?.overlay); run("app.feedback"); })))
+      .child(nav.h_full().child(div().flex_1()).child(this.button(t, "st-feedback", "提供意見回饋", () => { closeOverlay(props()?.overlay); run("app.feedback"); })))
       .child(
         // A bar that always shows: the pages are taller than the dialog and
         // people should see that they scroll.

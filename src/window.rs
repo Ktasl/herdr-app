@@ -841,6 +841,12 @@ impl AppWindow {
             self.report_layout(&problems.join("; "));
         }
         if settings::set(s) {
+            #[cfg(target_os = "macos")]
+            window.set_background_appearance(if settings::get().window_blur {
+                gpui::WindowBackgroundAppearance::Blurred
+            } else {
+                gpui::WindowBackgroundAppearance::Opaque
+            });
             for term in self.terms.values() {
                 term.view.read(cx).refresh_theme();
             }
@@ -3874,7 +3880,7 @@ impl AppWindow {
             el = el.rounded(settings::z(r));
         }
         if let Some(bg) = &f.background {
-            el = paint(el, bg);
+            el = paint(el, bg, false);
         }
         if let Some(l) = line {
             el = el.border(settings::z(l.width)).border_color(c(&l.color));
@@ -4009,7 +4015,7 @@ impl AppWindow {
                         .items_center()
                         .justify_center()
                         .text_color(c("dim"))
-                        .child(format!("No space open. Make one{}.", key.unwrap_or_default()))
+                        .child(format!("尚未開啟任何工作區。請建立一個工作區{}。", key.unwrap_or_default()))
                         .into_any_element()
                 }
             },
@@ -4647,7 +4653,7 @@ fn apply_look(el: Div, n: &Node, focused: bool) -> Div {
     if let Some(bg) = focus.and_then(|f| f.background.as_ref()) {
         el = el.bg(c(bg));
     } else if let Some(bg) = &n.background {
-        el = paint(el, bg);
+        el = paint(el, bg, n.id == "root" || n.id == "sidebar");
     }
     if let Some(line) = pane_size::node_border(n, focused) {
         el = el.border(settings::z(line.width)).border_color(c(&line.color));
@@ -4664,10 +4670,18 @@ fn apply_look(el: Div, n: &Node, focused: bool) -> Div {
 
 /// A color or gradient paints the element; an image is a layer behind
 /// whatever comes after it (call before adding content).
-fn paint(el: Div, bg: &Paint) -> Div {
+fn paint(el: Div, bg: &Paint, translucent_when_blur: bool) -> Div {
+    let blur = cfg!(target_os = "macos") && settings::get().window_blur && translucent_when_blur;
     match bg {
-        Paint::Color(name) => el.bg(c(name)),
-        Paint::Gradient { gradient: [a, b], angle } => el.bg(linear_gradient(*angle, linear_color_stop(c(a), 0.), linear_color_stop(c(b), 1.))),
+        Paint::Color(name) => {
+            let col = if blur { c(name).opacity(0.80) } else { c(name) };
+            el.bg(col)
+        }
+        Paint::Gradient { gradient: [a, b], angle } => {
+            let col_a = if blur { c(a).opacity(0.80) } else { c(a) };
+            let col_b = if blur { c(b).opacity(0.80) } else { c(b) };
+            el.bg(linear_gradient(*angle, linear_color_stop(col_a, 0.), linear_color_stop(col_b, 1.)))
+        }
         Paint::Image { image, fit } => {
             let fit = match fit {
                 Fit::Cover => ObjectFit::Cover,
@@ -4724,6 +4738,7 @@ impl Render for AppWindow {
         let tracker = self.float_tracker(cx);
         let win_tracker = self.window_tracker(cx);
         let pane_drag = self.pane_drag_layer(cx);
+        let window_blur = cfg!(target_os = "macos") && settings::get().window_blur;
         div()
             .id("herdr")
             .track_focus(&self.focus)
@@ -4731,7 +4746,8 @@ impl Render for AppWindow {
             .key_context(format!("Herdr layout = {}", self.layout_name).as_str())
             .size_full()
             .relative()
-            .bg(c("background"))
+            .when(!window_blur, |d| d.bg(c("background")))
+            .when(window_blur, |d| d.bg(c("background").opacity(0.80)))
             .text_color(c("foreground"))
             .font_family(settings::get().ui_font_family.clone())
             .on_action(cx.listener(|this, a: &ShellAction, w, cx| {

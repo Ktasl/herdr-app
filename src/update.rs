@@ -130,12 +130,12 @@ pub fn set_core(version: Option<String>, managed: Option<String>) {
 }
 
 fn checks_app() -> Option<PathBuf> {
-    root().filter(|_| option_env!("HERDR_APP_RELEASE").is_some() || std::env::var_os("HERDR_RELEASES_URL").is_some() || std::env::var_os("HERDR_APP_RELEASES_URL").is_some())
+    root()
 }
 
 /// A release build checks the core; a source build only when pointed at a test release server.
 fn checks_core() -> bool {
-    option_env!("HERDR_APP_RELEASE").is_some() || std::env::var_os("HERDR_RELEASES_URL").is_some() || std::env::var_os("HERDR_CORE_RELEASES_URL").is_some()
+    true
 }
 
 /// For the settings screen: both programs, what's waiting, when we last looked.

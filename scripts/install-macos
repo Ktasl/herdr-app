@@ -3,17 +3,25 @@ set -euo pipefail
 
 [[ $(uname -s) == Darwin ]] || { echo 'This installer requires macOS.' >&2; exit 1; }
 cd "$(dirname "$0")/.."
-cargo build --release
+version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+HERDR_APP_RELEASE=1 cargo build --release
 
-app="$HOME/Applications/Herdr.app"
-mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$HOME/.local/bin"
-# Replace atomically so installing does not interrupt a running Herdr.
-cp target/release/herdr-app "$app/Contents/MacOS/Herdr.new"
-mv -f "$app/Contents/MacOS/Herdr.new" "$app/Contents/MacOS/Herdr"
-chmod +x "$app/Contents/MacOS/Herdr"
-cp assets/icons/Herdr.icns "$app/Contents/Resources/Herdr.icns"
+apps=()
+if [[ -d "/Applications/Herdr.app" ]]; then
+  apps+=("/Applications/Herdr.app")
+fi
+apps+=("$HOME/Applications/Herdr.app")
 
-cat > "$app/Contents/Info.plist" <<'PLIST'
+mkdir -p "$HOME/.local/bin"
+
+for app in "${apps[@]}"; do
+  mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+  cp target/release/herdr-app "$app/Contents/MacOS/Herdr.new"
+  mv -f "$app/Contents/MacOS/Herdr.new" "$app/Contents/MacOS/Herdr"
+  chmod +x "$app/Contents/MacOS/Herdr"
+  cp assets/icons/Herdr.icns "$app/Contents/Resources/Herdr.icns"
+
+  cat > "$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
@@ -23,8 +31,8 @@ cat > "$app/Contents/Info.plist" <<'PLIST'
     <key>CFBundleDisplayName</key><string>Herdr</string>
     <key>CFBundleIconFile</key><string>Herdr</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>0.0.1</string>
-    <key>CFBundleVersion</key><string>1</string>
+    <key>CFBundleShortVersionString</key><string>$version</string>
+    <key>CFBundleVersion</key><string>$version</string>
     <key>NSMicrophoneUsageDescription</key><string>Terminal programs running in Herdr can use the microphone, for example for voice input.</string>
     <key>NSCameraUsageDescription</key><string>Terminal programs running in Herdr can use the camera.</string>
     <key>NSAppleEventsUsageDescription</key><string>Terminal programs running in Herdr can use AppleScript to control other apps.</string>
@@ -32,9 +40,11 @@ cat > "$app/Contents/Info.plist" <<'PLIST'
     <key>NSHighResolutionCapable</key><true/>
     <key>LSEnvironment</key><dict/></dict></plist>
 PLIST
-# Finder does not inherit a login shell's PATH; hc must still be discoverable.
-/usr/libexec/PlistBuddy -c "Add :LSEnvironment:PATH string $HOME/.local/bin:/opt/homebrew/bin:$PATH" "$app/Contents/Info.plist"
-codesign --force --sign - "$app"
-ln -sfn "$app/Contents/MacOS/Herdr" "$HOME/.local/bin/herdr-app"
-/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$app"
-echo "Installed $app. Quit and reopen Herdr to use the new build."
+  /usr/libexec/PlistBuddy -c "Add :LSEnvironment:PATH string $HOME/.local/bin:/opt/homebrew/bin:$PATH" "$app/Contents/Info.plist" 2>/dev/null || true
+  codesign --force --sign - "$app"
+  /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$app" 2>/dev/null || true
+  echo "Installed $app ($version)."
+done
+
+ln -sfn "$HOME/Applications/Herdr.app/Contents/MacOS/Herdr" "$HOME/.local/bin/herdr-app"
+echo "Quit and reopen Herdr to use the new build."

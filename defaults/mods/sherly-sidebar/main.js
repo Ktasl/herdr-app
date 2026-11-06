@@ -1,6 +1,6 @@
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { run, theme, layout } from "herdr";
+import { run, theme, layout, updates } from "herdr";
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -16,6 +16,7 @@ export default class SherlySidebar extends View {
     const t = theme();
     const l = layout();
     const stop = (_e, cx) => cx.stop_propagation();
+    const ver = updates()?.app?.version ?? "0.1.13";
 
     const panelNode = find(l, "panel");
     const isPanelHidden = panelNode?.hidden ?? false;
@@ -149,6 +150,19 @@ export default class SherlySidebar extends View {
             iconBtn("btn-settings", "mods/workspace-chrome/settings.svg", "偏好設定", false, () =>
               run("app.settings"),
             ),
+          )
+          .child(
+            div()
+              .id("btn-version")
+              .pt(2)
+              .text_size(9)
+              .font_medium()
+              .text_color(t.dim ?? t.muted)
+              .cursor_pointer()
+              .hover((s) => s.text_color(t.foreground))
+              .on_mouse_down("left", stop)
+              .on_click(() => run("app.settings", { section: "updates" }))
+              .child(`v${ver}`),
           ),
       );
   }

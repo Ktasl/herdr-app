@@ -336,85 +336,139 @@ export default class Settings extends View {
       );
   }
 
-  transparencyControl(t, cx) {
+  transparencyControl(t) {
     const mode = this.person.window_transparency ?? (this.person.window_blur ? "blurred" : "none");
     const level = this.person.window_transparency_level ?? 3;
+    const showLevels = Boolean(this.pickingLevel);
 
-    const setMode = (m) => {
-      this.change((p) => {
-        if (mode === m) {
-          p.window_transparency = "none";
-          p.window_blur = false;
-        } else {
-          p.window_transparency = m;
-          p.window_blur = m === "blurred";
-        }
-      }, cx);
-    };
+    const levels = [
+      [1, "等級 1 (微透 35%)"],
+      [2, "等級 2 (透光 50%)"],
+      [3, "等級 3 (標準 65%)"],
+      [4, "等級 4 (微暗 80%)"],
+      [5, "等級 5 (極暗 90%)"],
+    ];
 
-    const nextLevel = () => {
-      this.change((p) => {
-        p.window_transparency_level = level >= 5 ? 1 : level + 1;
-      }, cx);
-    };
-
-    return h_flex()
-      .gap(8)
-      .items_center()
+    return v_flex()
+      .items_end()
+      .gap(6)
       .child(
         h_flex()
-          .p(2)
-          .gap(2)
-          .rounded(8)
-          .border_1()
-          .border_color(t.border)
-          .bg(t.background)
+          .gap(8)
+          .items_center()
           .child(
-            div()
-              .id("st-trans-transparent")
-              .px(12)
-              .py(4)
-              .rounded(6)
-              .text_size(13)
-              .cursor_pointer()
-              .when(mode === "transparent", (el) => el.bg(t.raised).text_color(t.foreground).border_1().border_color(t.border))
-              .when(mode !== "transparent", (el) => el.text_color(t.muted).hover((s) => s.text_color(t.foreground)))
-              .on_click(() => setMode("transparent"))
-              .child("透明"),
+            h_flex()
+              .p(2)
+              .gap(2)
+              .rounded(8)
+              .border_1()
+              .border_color(t.border)
+              .bg(t.background)
+              .child(
+                div()
+                  .id("st-trans-transparent")
+                  .px(12)
+                  .py(4)
+                  .rounded(6)
+                  .text_size(13)
+                  .cursor_pointer()
+                  .when(mode === "transparent", (el) => el.bg(t.raised).text_color(t.foreground).border_1().border_color(t.border))
+                  .when(mode !== "transparent", (el) => el.text_color(t.muted).hover((s) => s.text_color(t.foreground)))
+                  .on_click((_e, cx) => {
+                    this.change((p) => {
+                      const currentMode = p.window_transparency ?? (p.window_blur ? "blurred" : "none");
+                      if (currentMode === "transparent") {
+                        p.window_transparency = "none";
+                        p.window_blur = false;
+                      } else {
+                        p.window_transparency = "transparent";
+                        p.window_blur = false;
+                      }
+                    }, cx);
+                  })
+                  .child("透明"),
+              )
+              .child(
+                div()
+                  .id("st-trans-blurred")
+                  .px(12)
+                  .py(4)
+                  .rounded(6)
+                  .text_size(13)
+                  .cursor_pointer()
+                  .when(mode === "blurred", (el) => el.bg(t.raised).text_color(t.foreground).border_1().border_color(t.border))
+                  .when(mode !== "blurred", (el) => el.text_color(t.muted).hover((s) => s.text_color(t.foreground)))
+                  .on_click((_e, cx) => {
+                    this.change((p) => {
+                      const currentMode = p.window_transparency ?? (p.window_blur ? "blurred" : "none");
+                      if (currentMode === "blurred") {
+                        p.window_transparency = "none";
+                        p.window_blur = false;
+                      } else {
+                        p.window_transparency = "blurred";
+                        p.window_blur = true;
+                      }
+                    }, cx);
+                  })
+                  .child("毛玻璃"),
+              ),
           )
           .child(
             div()
-              .id("st-trans-blurred")
-              .px(12)
-              .py(4)
-              .rounded(6)
-              .text_size(13)
+              .id("st-trans-level")
+              .h(30)
+              .px(10)
+              .gap(4)
+              .rounded(8)
+              .border_1()
+              .border_color(showLevels ? t.accent : t.border)
+              .bg(t.background)
               .cursor_pointer()
-              .when(mode === "blurred", (el) => el.bg(t.raised).text_color(t.foreground).border_1().border_color(t.border))
-              .when(mode !== "blurred", (el) => el.text_color(t.muted).hover((s) => s.text_color(t.foreground)))
-              .on_click(() => setMode("blurred"))
-              .child("毛玻璃"),
+              .flex()
+              .items_center()
+              .text_size(12.5)
+              .text_color(mode !== "none" ? t.foreground : t.dim)
+              .hover((s) => s.bg(t.raised))
+              .on_click((_e, cx) => {
+                this.pickingLevel = !this.pickingLevel;
+                cx.notify();
+              })
+              .child(`等級 ${level}`)
+              .child(div().text_size(10).text_color(t.muted).child(" ▾")),
           ),
       )
-      .child(
-        div()
-          .id("st-trans-level")
-          .h(30)
-          .px(10)
-          .gap(4)
-          .rounded(8)
-          .border_1()
-          .border_color(t.border)
-          .bg(t.background)
-          .cursor_pointer()
-          .flex()
-          .items_center()
-          .text_size(12.5)
-          .text_color(mode !== "none" ? t.foreground : t.dim)
-          .hover((s) => s.bg(t.raised))
-          .on_click(nextLevel)
-          .child(`等級 ${level}`)
-          .child(div().text_size(10).text_color(t.muted).child(" ▾")),
+      .when(showLevels, (el) =>
+        el.child(
+          v_flex()
+            .id("st-trans-level-menu")
+            .p(4)
+            .gap(2)
+            .rounded(8)
+            .border_1()
+            .border_color(t.border)
+            .bg(t.raised)
+            .children(
+              levels.map(([lvl, label]) =>
+                div()
+                  .id(`st-trans-lvl-${lvl}`)
+                  .px(10)
+                  .py(4)
+                  .rounded(6)
+                  .text_size(12)
+                  .cursor_pointer()
+                  .when(level === lvl, (item) => item.bg(t.accent).text_color(t.accent_foreground))
+                  .when(level !== lvl, (item) => item.text_color(t.foreground).hover((s) => s.bg(t.hover)))
+                  .on_click((_e, cx) => {
+                    this.change((p) => {
+                      p.window_transparency_level = lvl;
+                    }, cx);
+                    this.pickingLevel = false;
+                    cx.notify();
+                  })
+                  .child(label),
+              ),
+            ),
+        ),
       );
   }
 

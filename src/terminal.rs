@@ -1468,7 +1468,9 @@ impl Render for TerminalView {
             .size_full()
             .relative()
             // Below 1, the layout's background shows through (cells a program colors stay solid).
-            .bg(hsla(vt::theme().bg).opacity(crate::settings::get().terminal_opacity))
+            .when(crate::settings::get().window_transparency == "none", |d| {
+                d.bg(hsla(vt::theme().bg).opacity(crate::settings::get().terminal_opacity))
+            })
             .on_action(cx.listener(|this, a: &gpui_shell::action::ShellAction, _, cx| {
                 // `send:<text>` bindings from keys.json type into this terminal.
                 match a.id().strip_prefix("send:") {

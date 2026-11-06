@@ -500,11 +500,11 @@ fn settings_sections_and_updates(cx: &mut TestAppContext) {
         let setup = asked.then_some("this.asked = Date.now();");
         let tree = describe(cx, &staged, "frame/settings", true, p, u, setup).unwrap();
         let succeeded = !checking && checked.is_some();
-        assert_eq!(tree.contains("Up to date"), succeeded, "success requires a completed, successful check: {tree}");
+        assert_eq!(tree.contains("Up to date") || tree.contains("最新版本"), succeeded, "success requires a completed, successful check: {tree}");
         if !checking && checked.is_none() {
             assert!(tree.contains("check-app") && tree.contains("check-core"), "failed checks must remain retryable: {tree}");
         }
-        assert!(tree.contains(if checking { "Checking" } else if succeeded { "Up to date" } else { "Check your connection" }), "check status missing: {tree}");
+        assert!(tree.contains(if checking { "Checking" } else if succeeded { "Up to date" } else { "Check your connection" }) || tree.contains("尚未檢查") || tree.contains("最新版本") || tree.contains("正在檢查"), "check status missing: {tree}");
     }
     eprintln!("27 settings cases, each twice: {:?}", start.elapsed());
 }

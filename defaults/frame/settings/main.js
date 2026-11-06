@@ -336,6 +336,88 @@ export default class Settings extends View {
       );
   }
 
+  transparencyControl(t, cx) {
+    const mode = this.person.window_transparency ?? (this.person.window_blur ? "blurred" : "none");
+    const level = this.person.window_transparency_level ?? 3;
+
+    const setMode = (m) => {
+      this.change((p) => {
+        if (mode === m) {
+          p.window_transparency = "none";
+          p.window_blur = false;
+        } else {
+          p.window_transparency = m;
+          p.window_blur = m === "blurred";
+        }
+      }, cx);
+    };
+
+    const nextLevel = () => {
+      this.change((p) => {
+        p.window_transparency_level = level >= 5 ? 1 : level + 1;
+      }, cx);
+    };
+
+    return h_flex()
+      .gap(8)
+      .items_center()
+      .child(
+        h_flex()
+          .p(2)
+          .gap(2)
+          .rounded(8)
+          .border_1()
+          .border_color(t.border)
+          .bg(t.background)
+          .child(
+            div()
+              .id("st-trans-transparent")
+              .px(12)
+              .py(4)
+              .rounded(6)
+              .text_size(13)
+              .cursor_pointer()
+              .when(mode === "transparent", (el) => el.bg(t.raised).text_color(t.foreground).border_1().border_color(t.border))
+              .when(mode !== "transparent", (el) => el.text_color(t.muted).hover((s) => s.text_color(t.foreground)))
+              .on_click(() => setMode("transparent"))
+              .child("透明"),
+          )
+          .child(
+            div()
+              .id("st-trans-blurred")
+              .px(12)
+              .py(4)
+              .rounded(6)
+              .text_size(13)
+              .cursor_pointer()
+              .when(mode === "blurred", (el) => el.bg(t.raised).text_color(t.foreground).border_1().border_color(t.border))
+              .when(mode !== "blurred", (el) => el.text_color(t.muted).hover((s) => s.text_color(t.foreground)))
+              .on_click(() => setMode("blurred"))
+              .child("毛玻璃"),
+          ),
+      )
+      .child(
+        div()
+          .id("st-trans-level")
+          .h(30)
+          .px(10)
+          .gap(4)
+          .rounded(8)
+          .border_1()
+          .border_color(t.border)
+          .bg(t.background)
+          .cursor_pointer()
+          .flex()
+          .items_center()
+          .text_size(12.5)
+          .text_color(mode !== "none" ? t.foreground : t.dim)
+          .hover((s) => s.bg(t.raised))
+          .on_click(nextLevel)
+          .child(`等級 ${level}`)
+          .child(div().text_size(10).text_color(t.muted).child(" ▾")),
+      );
+  }
+
   themePicker(t, light) {
     const s = settings();
     const current = light ? s.theme_light : s.theme_dark;
@@ -496,13 +578,9 @@ export default class Settings extends View {
       .child(
         this.row(
           t,
-          "視窗毛玻璃 (半透明)",
-          "讓視窗背景與側邊欄穿透顯示 macOS 桌面模糊毛玻璃質感。",
-          this.toggle(t, "st-blur", Boolean(this.person.window_blur), (_e, cx) =>
-            this.change((p) => {
-              p.window_blur = !p.window_blur;
-            }, cx),
-          ),
+          "視窗透明度",
+          "設定終端機與編輯器區塊的透明效果與等級（透明或毛玻璃）。",
+          this.transparencyControl(t, cx),
         ),
       )
       .child(div().pt(12).pb(8).text_size(12.5).text_color(t.dim).child("每個版面佈局均可獨立設定其淺色與深色主題。"))

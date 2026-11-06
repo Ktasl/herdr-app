@@ -850,10 +850,10 @@ impl AppWindow {
         }
         if settings::set(s) {
             #[cfg(target_os = "macos")]
-            window.set_background_appearance(if settings::get().window_blur {
-                gpui::WindowBackgroundAppearance::Blurred
-            } else {
-                gpui::WindowBackgroundAppearance::Opaque
+            window.set_background_appearance(match settings::get().window_transparency.as_str() {
+                "blurred" => gpui::WindowBackgroundAppearance::Blurred,
+                "transparent" => gpui::WindowBackgroundAppearance::Transparent,
+                _ => gpui::WindowBackgroundAppearance::Opaque,
             });
             for term in self.terms.values() {
                 term.view.read(cx).refresh_theme();
@@ -3890,7 +3890,9 @@ impl AppWindow {
             el = el.rounded(settings::z(r));
         }
         if let Some(bg) = &f.background {
-            el = paint(el, bg, true);
+            if settings::get().window_transparency == "none" {
+                el = paint(el, bg, true);
+            }
         }
         if let Some(l) = line {
             el = el.border(settings::z(l.width)).border_color(c(&l.color));
@@ -4749,7 +4751,7 @@ impl Render for AppWindow {
             .key_context(format!("Herdr layout = {}", self.layout_name).as_str())
             .size_full()
             .relative()
-            .when(!settings::get().window_blur, |d| d.bg(c("background")))
+            .when(settings::get().window_transparency == "none", |d| d.bg(c("background")))
             .text_color(c("foreground"))
             .font_family(settings::get().ui_font_family.clone())
             .on_action(cx.listener(|this, a: &ShellAction, w, cx| {

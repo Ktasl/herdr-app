@@ -632,6 +632,8 @@ What's about the user, never a look:
   enable them in terminal fonts such as JetBrains Mono and Fira Code. The cursor
   and background changes (including selections) break ligatures so individual cells stay clear.
 - `window_blur`: on macOS, set `true` to blur the window background into the desktop wallpaper behind it.
+- `window_transparency`: on macOS, transparency mode: `"none"`, `"transparent"`, or `"blurred"`.
+- `window_transparency_level`: on macOS, opacity level from `1` (most transparent) to `5` (most solid).
 - `theme`: a theme name or `{light, dark}`; used where the layout sets none.
   The theme picker overrides any layout and stays on that layout.
 - `colors`: theme color overrides (`{"accent":"#ff8800"}`), with the same

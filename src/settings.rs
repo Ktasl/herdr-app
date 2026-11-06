@@ -405,6 +405,42 @@ pub struct Person {
     /// On macOS: blur windows into the desktop wallpaper behind them.
     #[serde(default, skip_serializing_if = "is_false")]
     pub window_blur: bool,
+    /// On macOS: transparency mode: "none", "transparent", or "blurred".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub window_transparency: Option<String>,
+    /// On macOS: transparency level (1 to 5).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub window_transparency_level: Option<u8>,
+}
+
+impl Person {
+    pub fn transparency_mode(&self) -> &str {
+        if let Some(ref m) = self.window_transparency {
+            m.as_str()
+        } else if self.window_blur {
+            "blurred"
+        } else {
+            "none"
+        }
+    }
+
+    pub fn transparency_level(&self) -> u8 {
+        self.window_transparency_level.unwrap_or(3).clamp(1, 5)
+    }
+
+    pub fn calculated_terminal_opacity(&self) -> f32 {
+        match self.transparency_mode() {
+            "none" => 1.0,
+            _ => match self.transparency_level() {
+                1 => 0.35,
+                2 => 0.50,
+                3 => 0.65,
+                4 => 0.80,
+                5 => 0.90,
+                _ => 0.65,
+            },
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -465,6 +501,8 @@ impl Default for Person {
             theme: None,
             colors: BTreeMap::new(),
             window_blur: false,
+            window_transparency: None,
+            window_transparency_level: None,
         }
     }
 }
@@ -499,6 +537,8 @@ pub struct Settings {
     pub option_as_alt: OptionAsAlt,
     pub sounds: Sounds,
     pub window_blur: bool,
+    pub window_transparency: String,
+    pub window_transparency_level: u8,
 }
 
 /// Attention sounds: when an agent needs you, and when one finished while you
@@ -541,6 +581,8 @@ impl Default for Settings {
             option_as_alt: OptionAsAlt::Auto,
             sounds: Sounds::default(),
             window_blur: false,
+            window_transparency: "none".into(),
+            window_transparency_level: 3,
         }
     }
 }
@@ -559,6 +601,9 @@ impl Settings {
             Some(c) => (c.pick(false).to_owned(), c.pick(true).to_owned()),
             None => (DEFAULT_LIGHT.to_owned(), DEFAULT_DARK.to_owned()),
         };
+        let mode = person.transparency_mode().to_string();
+        let level = person.transparency_level();
+        let is_blur = mode == "blurred";
         Settings {
             // The layout's own, else the person's, else Herdr's.
             font_family: look.font.clone().or(person.font.clone()).unwrap_or(d.font_family),
@@ -573,12 +618,20 @@ impl Settings {
             dark,
             colors,
             terminal_padding: look.terminal_padding.unwrap_or(d.terminal_padding),
-            terminal_opacity: look.terminal_opacity.unwrap_or(if cfg!(target_os = "macos") && person.window_blur { 0.75 } else { 1.0 }).clamp(0.0, 1.0),
+            terminal_opacity: look.terminal_opacity.unwrap_or_else(|| {
+                if cfg!(target_os = "macos") {
+                    person.calculated_terminal_opacity()
+                } else {
+                    1.0
+                }
+            }).clamp(0.0, 1.0),
             sounds: person.sounds.clone(),
             clipboard_write: person.clipboard_write,
             minimum_contrast: person.minimum_contrast,
             option_as_alt: person.option_as_alt,
-            window_blur: person.window_blur,
+            window_blur: is_blur,
+            window_transparency: mode,
+            window_transparency_level: level,
         }
     }
 }
@@ -710,18 +763,12 @@ pub fn set(s: Settings) -> bool {
         let (p, mut colors) = palette(&s.theme).unwrap_or_else(|_| (GRAPHITE.clone(), BTreeMap::new()));
         colors.extend(s.colors.clone());
         let mut theme = resolve(&p, &colors);
-        if cfg!(target_os = "macos") && s.window_blur {
-            for (key, alpha) in [
-                ("background", "30"),
-                ("canvas", "20"),
-                ("chrome", "50"),
-                ("surface", "40"),
-                ("raised", "60"),
-            ] {
+        if cfg!(target_os = "macos") && s.window_transparency != "none" {
+            for key in ["background", "canvas"] {
                 if let Some(val) = theme.get_mut(key) {
                     let h = val.trim().trim_start_matches('#');
                     if h.len() == 6 {
-                        *val = format!("#{h}{alpha}");
+                        *val = format!("#{h}00");
                     }
                 }
             }
@@ -961,7 +1008,7 @@ mod tests {
     /// settings.json key.
     #[test]
     fn the_guide_explains_every_setting() {
-        let all = Person { core: Some(String::new()), font: Some(String::new()), font_size: Some(1.0), ui_font: Some(String::new()), telemetry: false, clipboard_write: false, appearance: Appearance::Light, theme: Some(crate::layout::ThemeChoice::One(String::new())), colors: [("text".into(), String::new())].into(), window_blur: false, ..Person::default() };
+        let all = Person { core: Some(String::new()), font: Some(String::new()), font_size: Some(1.0), ui_font: Some(String::new()), telemetry: false, clipboard_write: false, appearance: Appearance::Light, theme: Some(crate::layout::ThemeChoice::One(String::new())), colors: [("text".into(), String::new())].into(), window_blur: false, window_transparency: Some(String::new()), window_transparency_level: Some(1), ..Person::default() };
         let keys: Vec<String> = serde_json::to_value(&all).unwrap().as_object().unwrap().keys().cloned().collect();
         let guide = include_str!("../defaults/AGENTS.md");
         let section = guide.split("## The person").nth(1).and_then(|s| s.split("\n## ").next()).unwrap_or_default();

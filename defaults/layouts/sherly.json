@@ -30,7 +30,6 @@
           "content": {
             "tab": "active",
             "pane": {
-              "background": "background",
               "lone": true,
               "focus": {
                 "width": 1,
@@ -42,45 +41,61 @@
         {
           "id": "panel",
           "type": "column",
-          "hidden": true,
+          "hidden": false,
           "size": {
             "px": 280
           },
+          "divider": {
+            "width": 1,
+            "color": "border"
+          },
           "children": [
             {
-              "id": "panel-body",
-              "type": "stack",
-              "active": "spaces",
-              "children": [
-                {
-                  "id": "spaces",
-                  "type": "block",
-                  "content": {
-                    "mod": "spaces"
-                  }
-                },
-                {
-                  "id": "agents",
-                  "type": "block",
-                  "content": {
-                    "mod": "agents"
-                  }
-                },
-                {
-                  "id": "files",
-                  "type": "block",
-                  "content": {
-                    "mod": "files"
-                  }
-                },
-                {
-                  "id": "changes",
-                  "type": "block",
-                  "content": {
-                    "mod": "changes"
-                  }
-                }
-              ]
+              "id": "drawer-spaces",
+              "type": "block",
+              "size": {
+                "weight": 1
+              },
+              "min": 80,
+              "content": {
+                "mod": "spaces"
+              }
+            },
+            {
+              "id": "drawer-agents",
+              "type": "block",
+              "size": {
+                "weight": 1
+              },
+              "min": 80,
+              "hidden": true,
+              "content": {
+                "mod": "agents"
+              }
+            },
+            {
+              "id": "drawer-files",
+              "type": "block",
+              "size": {
+                "weight": 1
+              },
+              "min": 80,
+              "hidden": true,
+              "content": {
+                "mod": "files"
+              }
+            },
+            {
+              "id": "drawer-changes",
+              "type": "block",
+              "size": {
+                "weight": 1
+              },
+              "min": 80,
+              "hidden": true,
+              "content": {
+                "mod": "changes"
+              }
             }
           ]
         },

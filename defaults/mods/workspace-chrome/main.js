@@ -1,6 +1,6 @@
 import { View, div, image, svg } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { theme, run, props, window, shared, setShared, updates, layout } from "herdr";
+import { theme, run, props, window, shared, setShared, updates, layout, notify } from "herdr";
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -24,6 +24,8 @@ function toggleSidebar() {
 }
 
 export default class WorkspaceChrome extends View {
+  showVersion = false;
+
   button(id, label, action) {
     const t = theme();
     return div().id(id).size(26).flex_none().flex().items_center().justify_center().rounded(6).text_color(t.muted).hover(s => s.bg(t.hover).text_color(t.foreground))
@@ -32,6 +34,19 @@ export default class WorkspaceChrome extends View {
   render() {
     const t = theme();
     const collapsed = narrow();
+    const ver = updates()?.app?.version ?? "0.1.13";
+    const toggleVersion = (_e, cx) => {
+      this.showVersion = !this.showVersion;
+      notify({
+        title: `Herdr v${ver}`,
+        body: "繁體中文 · Antigravity 整合版 (點擊查看更新詳情)",
+        level: "info",
+        timeout: 3500,
+        action: { name: "app.whats_new" }
+      });
+      cx.notify();
+    };
+
     if (props()?.footer) {
       const row = (id, icon, label, dim, action) => h_flex().id(id).h(28).px(8).gap(9).items_center().rounded(8)
         .text_color(dim ? t.dim : t.muted).hover(s => s.bg(t.hover).text_color(t.foreground)).cursor_pointer()
@@ -44,7 +59,19 @@ export default class WorkspaceChrome extends View {
     }
     return h_flex().size_full().bg(t.chrome).pl(collapsed ? 6 : 14).pr(10).gap(4).items_center().text_size(13.5)
       .when(window()?.platform === "macos" && !window()?.fullscreen && !collapsed, el => el.pl(76))
-      .when(!collapsed, el => el.child(h_flex().flex_1().gap(8).items_center().child(image("frame/welcome/herdr.png").size(20).rounded(5)).child(div().font_semibold().text_color(t.foreground).child("Herdr"))))
+      .when(!collapsed, el => el.child(
+        h_flex().id("brand-herdr").flex_1().gap(7).items_center().cursor_pointer()
+          .p(3).rounded(6).hover(s => s.bg(t.hover))
+          .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
+          .on_click(toggleVersion)
+          .child(image("frame/welcome/herdr.png").size(20).rounded(5))
+          .child(div().font_semibold().text_color(t.foreground).child("Herdr"))
+          .when(this.showVersion, badge => badge.child(
+            div().px(5).py(1).rounded(4).bg(t.raised).border_1().border_color(t.border)
+              .text_size(10.5).font_medium().text_color(t.accent ?? t.foreground)
+              .child(`v${ver}`)
+          ))
+      ))
       .when(!collapsed, el => el.child(this.button("search", svg("mods/workspace-chrome/search.svg").size(15), () => run("mod.open", { name: "picker" }))))
       // On the macOS rail the traffic lights fill the row; the agents list's » unfolds it.
       .when(!(collapsed && window()?.platform === "macos"), el => el.child(this.button("sidebar-toggle", svg("mods/workspace-chrome/sidebar.svg").size(15), toggleSidebar)));

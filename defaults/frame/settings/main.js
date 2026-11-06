@@ -15,7 +15,7 @@ const SECTIONS = [
   { id: "privacy", title: "隱私權", icon: "shield" },
 ];
 
-const LOOKS = { main: "Herdr 原生", terminals: "極簡終端", win98: "復古 98" };
+const LOOKS = { main: "Herdr 原生", terminals: "極簡終端", win98: "復古 98", sherly: "Sherly 專業版" };
 const THEME_NAMES = {
   "anti-dark": "Antigravity (暖調原色)",
   "atom-one-dark": "Atom One Dark",

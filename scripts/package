@@ -41,8 +41,9 @@ case "$arch" in
   arm64 | aarch64) arch=aarch64 ;;
   *) echo "package: unsupported CPU $arch" >&2; exit 1 ;;
 esac
-if [[ $os == macos && $arch != aarch64 ]]; then
-  echo "package: Intel Macs aren't supported; build from source instead." >&2
+# Support both aarch64 and x86_64 on macOS
+if [[ $os == macos && $arch != aarch64 && $arch != x86_64 ]]; then
+  echo "package: Unsupported macOS architecture: $arch" >&2
   exit 1
 fi
 target="$os-$arch"

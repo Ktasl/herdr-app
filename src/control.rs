@@ -69,6 +69,25 @@ fn raise_running_at(path: &std::path::Path) -> bool {
     true
 }
 
+/// Opens a folder as a new space in the running window and brings it to the front.
+/// Returns true if a running window handled it.
+pub fn open_running(folder: &str) -> bool {
+    open_running_at(&socket(), folder)
+}
+
+fn open_running_at(path: &std::path::Path, folder: &str) -> bool {
+    let Ok(mut stream) = UnixStream::connect(path) else { return false };
+    let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
+    let cmd = json!({ "raise": true, "do": "space.new", "args": { "folder": folder } });
+    if stream.write_all(format!("{cmd}\n").as_bytes()).is_ok() {
+        let mut line = String::new();
+        if BufReader::new(&stream).read_line(&mut line).is_ok() {
+            return true;
+        }
+    }
+    true
+}
+
 /// The client side; returns the process exit code.
 pub fn client(args: &[String]) -> i32 {
     if args == ["commands"] {
@@ -199,6 +218,25 @@ mod tests {
         });
         assert!(raise_running_at(&path));
         assert_eq!(asked.join().unwrap(), json!({ "raise": true }));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn open_running_requests_space_new_and_raises_window() {
+        let dir = std::env::temp_dir().join(format!("herdr-app-open-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("herdr-app.sock");
+        assert!(!open_running_at(&path, "/path/to/project"));
+        let listener = UnixListener::bind(&path).unwrap();
+        let asked = std::thread::spawn(move || {
+            let (stream, _) = listener.accept().unwrap();
+            let mut line = String::new();
+            BufReader::new(&stream).read_line(&mut line).unwrap();
+            (&stream).write_all(b"{\"space\":\"sp-1\"}\n").unwrap();
+            serde_json::from_str::<Value>(&line).unwrap()
+        });
+        assert!(open_running_at(&path, "/path/to/project"));
+        assert_eq!(asked.join().unwrap(), json!({ "raise": true, "do": "space.new", "args": { "folder": "/path/to/project" } }));
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

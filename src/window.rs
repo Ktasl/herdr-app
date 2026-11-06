@@ -445,6 +445,7 @@ pub struct AppWindow {
     update_success: bool,
     update_status: String,
     focus: FocusHandle,
+    initial_folder: Option<String>,
     _tasks: Vec<Task<()>>,
     /// Gives the keyboard back when what had it leaves the screen (`restore_focus`).
     _focus_lost: Option<Subscription>,
@@ -454,7 +455,7 @@ pub struct AppWindow {
 }
 
 impl AppWindow {
-    pub fn new(core: Arc<Core>, requests: async_channel::Receiver<Request>, window: &mut Window, cx: &mut Context<Self>) -> Self {
+    pub fn new(core: Arc<Core>, requests: async_channel::Receiver<Request>, initial_folder: Option<String>, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let runtime = ShellRuntime::new(cx).map_err(|e| tracing::error!("script runtime failed, mods are off: {e:#}")).ok();
         mods::note_fonts(cx);
         let seen = std::fs::read_to_string(file("seen.json")).ok().and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default();
@@ -529,6 +530,7 @@ impl AppWindow {
             update_success: false,
             update_status: String::new(),
             focus: cx.focus_handle(),
+            initial_folder,
             _tasks: Vec::new(),
             _focus_lost: None,
             _place: None,
@@ -633,6 +635,9 @@ impl AppWindow {
                         if generation != this.core_generation { return; }
                         this.documents.entry(String::new()).or_default().connection(true, None, None);
                         this.documents_updated(None, vec![result], window, cx);
+                        if let Some(folder) = this.initial_folder.take() {
+                            this.run("space.new", json!({ "folder": folder }), window, cx);
+                        }
                         this.sync(window, cx);
                     }).is_err() { break; }
                 }
@@ -687,6 +692,9 @@ impl AppWindow {
                     }
                     if changed { this.sync(window, cx); }
                     this.flush_documents(refresh, window, cx);
+                    if let Some(folder) = this.initial_folder.take() {
+                        this.run("space.new", json!({ "folder": folder }), window, cx);
+                    }
                 }).is_err() { break; }
                 cx.background_executor().timer(Duration::from_millis(500)).await;
             }
@@ -3616,6 +3624,10 @@ impl AppWindow {
     }
 
     fn control(&mut self, cmd: Value, window: &mut Window, cx: &mut Context<Self>) -> Value {
+        if cmd.get("raise").is_some_and(|v| v.as_bool().unwrap_or(true)) {
+            cx.activate(true);
+            window.activate_window();
+        }
         if let Some(name) = cmd.get("do").and_then(Value::as_str) {
             let args = cmd.get("args").cloned().unwrap_or(Value::Null);
             return self.run_as(name, args, false, window, cx);
@@ -3631,8 +3643,6 @@ impl AppWindow {
         }
         // Herdr was launched again: this window comes to the front instead.
         if cmd.get("raise").is_some() {
-            cx.activate(true);
-            window.activate_window();
             return json!({ "ok": true });
         }
         if cmd.get("ls").is_some() {
@@ -5172,7 +5182,7 @@ mod tests {
         let requests = crate::mods::install_policy();
         crate::mods::set_shared("layout".into(), json!("test"));
         crate::mods::set_shared("frame.welcomed".into(), json!("test"));
-        let (view, cx) = cx.add_window_view(|window, cx| super::AppWindow::new(crate::hc::offline(), requests, window, cx));
+        let (view, cx) = cx.add_window_view(|window, cx| super::AppWindow::new(crate::hc::offline(), requests, None, window, cx));
         assert_eq!(view.update(cx, |this, _| this.layout_name.clone()), "test");
         (view, cx)
     }

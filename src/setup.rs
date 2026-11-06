@@ -67,7 +67,7 @@ impl Setup {
                 Ok(()) => {
                     let Some(requests) = self.requests.take() else { return };
                     window.remove_window();
-                    crate::open_main(core, requests, cx);
+                    crate::open_main(core, requests, None, cx);
                     return;
                 }
                 Err(m) => {

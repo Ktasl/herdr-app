@@ -596,6 +596,7 @@ command says what's missing.
 From a shell:
 
 ```sh
+herdr-app /path/to/repo # opens that folder as a space (or starts Herdr)
 herdr-app do tab.new --name "fix login" --argv '["claude"]' --task "look at the login bug"
 herdr-app do pane.split:right
 herdr-app ls          # spaces, their tabs and terminals (sub-agents under their parent)

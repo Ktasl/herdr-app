@@ -60,6 +60,19 @@ $link.WorkingDirectory = $env:USERPROFILE
 $link.Description = "Terminals and coding agents that keep running"
 $link.Save()
 
+$exe = Join-Path $dir "herdr-app.exe"
+# Windows Explorer context menu: right-click a folder or background to open in Herdr.
+$menuText = if ((Get-Culture).TwoLetterISOLanguageName -eq "zh") { "在 Herdr 中開啟" } else { "Open in Herdr" }
+foreach ($subKey in @("Directory\shell\Herdr", "Directory\Background\shell\Herdr", "Drive\shell\Herdr")) {
+    $keyPath = "HKCU:\Software\Classes\$subKey"
+    New-Item -Path $keyPath -Force | Out-Null
+    Set-ItemProperty -Path $keyPath -Name "(Default)" -Value $menuText
+    Set-ItemProperty -Path $keyPath -Name "Icon" -Value "`"$exe`""
+    $cmdPath = "$keyPath\command"
+    New-Item -Path $cmdPath -Force | Out-Null
+    Set-ItemProperty -Path $cmdPath -Name "(Default)" -Value "`"$exe`" `"%V`""
+}
+
 # Keep literal %VARIABLES% and the existing registry value type in PATH.
 $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey("Environment", $true)
 try {

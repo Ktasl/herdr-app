@@ -36,6 +36,7 @@ mod update_notes;
 mod vt;
 mod win32_keys;
 mod window;
+mod windows_menu;
 
 use gpui::*;
 
@@ -44,6 +45,8 @@ herdr-app: the Herdr desktop app. With no arguments it opens the window.
 
 Usage:
   herdr-app                        open the window
+  herdr-app [folder]               open a folder as a space
+  herdr-app open <folder>          open a folder as a space
   herdr-app ls                     spaces, their tabs and terminals, in the open window
   herdr-app do <command> [args]    run a command: --name api --argv '[\"pi\"]', or one JSON object
   herdr-app feedback <text>        draft feedback for the person to review and send
@@ -89,17 +92,41 @@ fn main() {
     if matches!(args.get(1).map(String::as_str), Some("do" | "status" | "ls" | "commands" | "feedback" | "shot")) {
         std::process::exit(control::client(&args[1..]));
     }
-    // Anything else from a shell answers in the shell; only a bare launch opens the window.
-    match args.get(1).map(String::as_str) {
-        // Already open on this home: that window comes to the front.
-        None if control::raise_running() => return,
-        None => {}
-        Some("-h" | "--help" | "help") => return print!("{HELP}"),
-        Some("--skill") => return print!("{}", include_str!("SKILL.md")),
-        Some("-V" | "--version" | "version") => return println!("herdr-app {}", env!("CARGO_PKG_VERSION")),
-        Some(other) => {
-            eprint!("herdr-app: unknown argument {other:?}\n\n{HELP}");
-            std::process::exit(2);
+
+    let folder_arg = match args.get(1).map(String::as_str) {
+        Some("open") => args.get(2).map(String::as_str),
+        Some(other) if !other.starts_with('-') && args.len() == 2 => {
+            let p = std::path::Path::new(other);
+            if p.exists() || other.contains('/') || other.contains('\\') || other == "." || other == ".." {
+                Some(other)
+            } else {
+                None
+            }
+        }
+        _ => None,
+    };
+    let folder_path = folder_arg.map(|raw| {
+        let p = std::path::Path::new(raw);
+        let abs = std::path::absolute(p).unwrap_or_else(|_| p.to_path_buf());
+        abs.to_string_lossy().to_string()
+    });
+
+    if let Some(folder) = &folder_path {
+        if control::open_running(folder) {
+            return;
+        }
+    } else {
+        match args.get(1).map(String::as_str) {
+            // Already open on this home: that window comes to the front.
+            None if control::raise_running() => return,
+            None => {}
+            Some("-h" | "--help" | "help") => return print!("{HELP}"),
+            Some("--skill") => return print!("{}", include_str!("SKILL.md")),
+            Some("-V" | "--version" | "version") => return println!("herdr-app {}", env!("CARGO_PKG_VERSION")),
+            Some(other) => {
+                eprint!("herdr-app: unknown argument {other:?}\n\n{HELP}");
+                std::process::exit(2);
+            }
         }
     }
 
@@ -138,6 +165,8 @@ fn main() {
     };
     #[cfg(target_os = "macos")]
     core_bin::install_cli_link();
+    #[cfg(windows)]
+    windows_menu::ensure_context_menu();
     if core.is_ok() {
         update::after_update();
     }
@@ -148,6 +177,7 @@ fn main() {
         eprintln!("herdr-app: cannot write {}: {e}", mods::app_dir().display());
     }
 
+    let initial_folder = folder_path.clone();
     gpui_platform::application()
         .with_assets(gpui_shell::AppAssets::new(mods::app_dir()))
         .run(move |cx| {
@@ -191,14 +221,14 @@ fn main() {
                 control::listen(tx);
             }
             match core {
-                Ok(core) => open_main(core, requests, cx),
+                Ok(core) => open_main(core, requests, initial_folder, cx),
                 Err(need) => setup::open(need, requests, cx),
             }
         });
 }
 
 /// The main window, on a connected core.
-pub fn open_main(core: std::sync::Arc<hc::Core>, requests: async_channel::Receiver<mods::Request>, cx: &mut App) {
+pub fn open_main(core: std::sync::Arc<hc::Core>, requests: async_channel::Receiver<mods::Request>, initial_folder: Option<String>, cx: &mut App) {
             let (window_bounds, display_id) = place::initial(cx);
             let options = WindowOptions {
                 window_bounds: Some(window_bounds),
@@ -221,7 +251,7 @@ pub fn open_main(core: std::sync::Arc<hc::Core>, requests: async_channel::Receiv
                 },
                 ..Default::default()
             };
-            cx.open_window(options, |window, cx| cx.new(|cx| window::AppWindow::new(core, requests, window, cx)))
+            cx.open_window(options, |window, cx| cx.new(|cx| window::AppWindow::new(core, requests, initial_folder, window, cx)))
                 .expect("cannot open the Herdr window");
             cx.activate(true);
 }

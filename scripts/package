@@ -102,4 +102,46 @@ fi
 tar -xOf "$out" "$notices_path" | cmp - THIRD-PARTY-NOTICES
 license_path="${notices_path%/*}/LICENSE"
 tar -xOf "$out" "$license_path" | cmp - LICENSE
-echo "package: $out ($(sha256 "$out"))"
+
+pkg_hash=$(sha256 "$out")
+echo "package: $out ($pkg_hash)"
+
+# Automatically update distribution/app/latest.json for online updates
+dist_json="distribution/app/latest.json"
+mkdir -p "distribution/app"
+if command -v python3 >/dev/null 2>&1; then
+  python3 -c "
+import json, os, subprocess
+
+path = '$dist_json'
+version = '$version'
+target = '$target'
+sha = '$pkg_hash'
+
+try:
+    tag = subprocess.check_output(['git', 'describe', '--tags', '--exact-match'], stderr=subprocess.DEVNULL, text=True).strip()
+except Exception:
+    tag = f'v{version}-zh'
+
+data = {'version': version, 'core_min': '0.1.11', 'notes': f'Herdr 繁體中文與 Antigravity 整合版 {version}', 'targets': {}}
+if os.path.exists(path):
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception:
+        pass
+
+data['version'] = version
+data['notes'] = f'Herdr 繁體中文與 Antigravity 整合版 {version}'
+if 'targets' not in data:
+    data['targets'] = {}
+data['targets'][target] = {
+    'url': f'https://github.com/Ktasl/herdr-app/releases/download/{tag}/herdr-app-{target}.tar.gz',
+    'sha256': sha
+}
+with open(path, 'w', encoding='utf-8') as f:
+    json.dump(data, f, indent=2, ensure_ascii=False)
+    f.write('\n')
+"
+  echo "package: updated $dist_json for $target"
+fi

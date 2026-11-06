@@ -69,8 +69,21 @@ fn target() -> String {
     format!("{os}-{}", std::env::consts::ARCH)
 }
 
+fn app_releases() -> String {
+    std::env::var("HERDR_APP_RELEASES_URL")
+        .or_else(|_| std::env::var("HERDR_RELEASES_URL"))
+        .unwrap_or_else(|_| "https://raw.githubusercontent.com/Ktasl/herdr-app/master/distribution".into())
+}
+
+fn core_releases() -> String {
+    std::env::var("HERDR_CORE_RELEASES_URL")
+        .or_else(|_| std::env::var("HERDR_RELEASES_URL"))
+        .unwrap_or_else(|_| "https://releases.herdr.dev".into())
+}
+
+#[cfg(test)]
 fn releases() -> String {
-    std::env::var("HERDR_RELEASES_URL").unwrap_or_else(|_| "https://releases.herdr.dev".into())
+    app_releases()
 }
 
 /// The version downloaded and waiting for a restart.
@@ -117,12 +130,12 @@ pub fn set_core(version: Option<String>, managed: Option<String>) {
 }
 
 fn checks_app() -> Option<PathBuf> {
-    root().filter(|_| option_env!("HERDR_APP_RELEASE").is_some() || std::env::var_os("HERDR_RELEASES_URL").is_some())
+    root().filter(|_| option_env!("HERDR_APP_RELEASE").is_some() || std::env::var_os("HERDR_RELEASES_URL").is_some() || std::env::var_os("HERDR_APP_RELEASES_URL").is_some())
 }
 
 /// A release build checks the core; a source build only when pointed at a test release server.
 fn checks_core() -> bool {
-    option_env!("HERDR_APP_RELEASE").is_some() || std::env::var_os("HERDR_RELEASES_URL").is_some()
+    option_env!("HERDR_APP_RELEASE").is_some() || std::env::var_os("HERDR_RELEASES_URL").is_some() || std::env::var_os("HERDR_CORE_RELEASES_URL").is_some()
 }
 
 /// For the settings screen: both programs, what's waiting, when we last looked.
@@ -222,7 +235,7 @@ struct CoreRelease {
 }
 
 fn latest_core() -> Result<CoreRelease, String> {
-    let text = curl_text(&format!("{}/core/latest.json", releases()))?;
+    let text = curl_text(&format!("{}/core/latest.json", core_releases()))?;
     serde_json::from_str(&text).map_err(|e| format!("core/latest.json: {e}"))
 }
 
@@ -266,7 +279,7 @@ pub fn update_core() {
 
 /// Downloads the latest release if it's newer. Ok(Some): a version is ready.
 fn check(root: &Path) -> Result<Option<String>, String> {
-    check_from(root, &releases())
+    check_from(root, &app_releases())
 }
 
 fn check_from(root: &Path, releases: &str) -> Result<Option<String>, String> {

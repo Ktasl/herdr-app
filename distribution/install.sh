@@ -11,7 +11,7 @@
 # keeps it current after that. Running it again updates the app.
 set -eu
 
-releases=${HERDR_RELEASES_URL:-https://releases.herdr.dev}
+releases=${HERDR_RELEASES_URL:-https://raw.githubusercontent.com/Ktasl/herdr-app/master/distribution}
 bin="$HOME/.local/bin"
 
 say() { printf '%s\n' "$*"; }

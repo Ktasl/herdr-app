@@ -573,7 +573,7 @@ impl Settings {
             dark,
             colors,
             terminal_padding: look.terminal_padding.unwrap_or(d.terminal_padding),
-            terminal_opacity: look.terminal_opacity.unwrap_or(1.0).clamp(0.0, 1.0),
+            terminal_opacity: look.terminal_opacity.unwrap_or(if cfg!(target_os = "macos") && person.window_blur { 0.75 } else { 1.0 }).clamp(0.0, 1.0),
             sounds: person.sounds.clone(),
             clipboard_write: person.clipboard_write,
             minimum_contrast: person.minimum_contrast,
@@ -709,7 +709,17 @@ pub fn set(s: Settings) -> bool {
         // have new colors under the same name.
         let (p, mut colors) = palette(&s.theme).unwrap_or_else(|_| (GRAPHITE.clone(), BTreeMap::new()));
         colors.extend(s.colors.clone());
-        let theme = resolve(&p, &colors);
+        let mut theme = resolve(&p, &colors);
+        if cfg!(target_os = "macos") && s.window_blur {
+            for key in ["background", "canvas", "chrome", "surface", "raised"] {
+                if let Some(val) = theme.get_mut(key) {
+                    let h = val.trim().trim_start_matches('#');
+                    if h.len() == 6 {
+                        *val = format!("#{h}c0");
+                    }
+                }
+            }
+        }
         if *c.borrow().0 == s && *c.borrow().1 == theme {
             return false;
         }

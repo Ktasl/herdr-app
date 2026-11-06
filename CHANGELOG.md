@@ -1,7 +1,6 @@
 # Herdr changelog
 
 ## [0.1.13] - 2026-11-06
-<!-- spotlight macos windows -->
 
 ### New
 - 繁體中文全介面在地化支援與系統語系自動適配。
@@ -13,7 +12,6 @@
 - macOS 視窗支援背景毛玻璃模糊效果 (`window_blur: true`)。
 
 ## [0.1.12] - 2026-11-02
-<!-- spotlight macos -->
 
 ### New
 - **On macOS, your agents now run fully apart from the app.** Close Herdr, quit it, update it: your agents keep running. Agents already running pick this up the next time they start.

@@ -45,6 +45,7 @@
           "size": {
             "px": 280
           },
+          "background": "chrome",
           "divider": {
             "width": 1,
             "color": "border"
@@ -105,6 +106,7 @@
           "size": {
             "px": 44
           },
+          "background": "chrome",
           "content": {
             "mod": "sherly-sidebar"
           }

@@ -4749,7 +4749,7 @@ impl Render for AppWindow {
             .key_context(format!("Herdr layout = {}", self.layout_name).as_str())
             .size_full()
             .relative()
-            .bg(c("background"))
+            .when(!settings::get().window_blur, |d| d.bg(c("background")))
             .text_color(c("foreground"))
             .font_family(settings::get().ui_font_family.clone())
             .on_action(cx.listener(|this, a: &ShellAction, w, cx| {

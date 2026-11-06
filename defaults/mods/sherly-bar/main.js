@@ -1,12 +1,13 @@
 import { View, div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { spaces, run, theme } from "herdr";
+import { spaces, run, theme, window } from "herdr";
 
 export default class SherlyBar extends View {
   render() {
     const t = theme();
     const allSpaces = spaces();
     const stop = (_e, cx) => cx.stop_propagation();
+    const isMac = window()?.platform === "macos" && !window()?.fullscreen;
 
     // Workspaces tabs
     const tabs = allSpaces.map((s, idx) => {
@@ -44,7 +45,8 @@ export default class SherlyBar extends View {
 
     return h_flex()
       .size_full()
-      .px(10)
+      .pl(isMac ? 78 : 10)
+      .pr(10)
       .items_center()
       .justify_between()
       .bg(t.chrome)
@@ -70,7 +72,7 @@ export default class SherlyBar extends View {
               .child(svg("mods/workspace-chrome/plus.svg").size(12)),
           ),
       )
-      // Right section: Minimalist CPU & RAM only (Battery, Clock, Pin removed per requirement 2)
+      // Right section: Minimalist CPU & RAM only
       .child(
         h_flex()
           .items_center()

@@ -711,11 +711,17 @@ pub fn set(s: Settings) -> bool {
         colors.extend(s.colors.clone());
         let mut theme = resolve(&p, &colors);
         if cfg!(target_os = "macos") && s.window_blur {
-            for key in ["background", "canvas", "chrome", "surface", "raised"] {
+            for (key, alpha) in [
+                ("background", "30"),
+                ("canvas", "20"),
+                ("chrome", "50"),
+                ("surface", "40"),
+                ("raised", "60"),
+            ] {
                 if let Some(val) = theme.get_mut(key) {
                     let h = val.trim().trim_start_matches('#');
                     if h.len() == 6 {
-                        *val = format!("#{h}c0");
+                        *val = format!("#{h}{alpha}");
                     }
                 }
             }

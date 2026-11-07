@@ -4,8 +4,8 @@
   "notes": "Herdr 繁體中文與 Antigravity 整合版 0.1.13",
   "targets": {
     "macos-x86_64": {
-      "url": "https://github.com/Ktasl/herdr-app/releases/download/v0.1.1-zh/herdr-app-macos-x86_64.tar.gz",
-      "sha256": "9b8100a4f113d90302409d05a8e64b2aa185ef4cba10aefbea185d5f6b356c70"
+      "url": "https://github.com/Ktasl/herdr-app/releases/download/v0.1.13-zh/herdr-app-macos-x86_64.tar.gz",
+      "sha256": "5b9adba348ee680c12b6ef82a4a045469c2020c0a32d09aef4147c60fe46df93"
     }
   }
 }

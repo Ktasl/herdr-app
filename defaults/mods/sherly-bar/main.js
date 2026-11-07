@@ -1,21 +1,60 @@
 import { View, div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { spaces, run, theme, window } from "herdr";
+import { spaces, panes, run, theme, window, home, openOverlay } from "herdr";
+
+function getTabTitle(tab, allPanes, currentSpace, idx) {
+  // If explicitly renamed by user, use that name
+  const isCustom = tab.named && tab.name && !/^\d+$/.test(tab.name) && !/^tb\d+$/.test(tab.name);
+  if (isCustom) return tab.name;
+
+  const tabPanes = allPanes.filter((p) => p.tab === tab.id);
+  const pane = tabPanes.find((p) => p.focused) ?? tabPanes[0];
+
+  if (pane?.cwd) {
+    const h = home();
+    if (pane.cwd === h) {
+      if (currentSpace?.name && currentSpace.name !== "~") return currentSpace.name;
+      return "~";
+    }
+    const parts = pane.cwd.replace(/\/+$/, "").split("/").filter(Boolean);
+    if (parts.length > 0) return parts[parts.length - 1];
+  }
+
+  if (pane?.title && pane.title !== "Terminal" && pane.title !== "zsh" && pane.title !== "bash") {
+    return pane.title;
+  }
+
+  if (currentSpace?.name && currentSpace.name !== "~") {
+    return currentSpace.name;
+  }
+
+  return `Terminal ${idx + 1}`;
+}
 
 export default class SherlyBar extends View {
+  init() {
+    this.hoveredTab = null;
+  }
+
   render() {
     const t = theme();
-    const allSpaces = spaces();
+    const currentSpace = spaces().find((s) => s.active);
+    const currentTabs = currentSpace?.tabs ?? [];
+    const allPanes = panes();
     const stop = (_e, cx) => cx.stop_propagation();
     const isMac = window()?.platform === "macos" && !window()?.fullscreen;
 
-    // Workspaces tabs
-    const tabs = allSpaces.map((s, idx) => {
-      const active = s.active;
+    // Terminal tabs inside the active workspace
+    const tabs = currentTabs.map((tab, idx) => {
+      const active = tab.active;
+      const isHovered = this.hoveredTab === tab.id;
+      const name = getTabTitle(tab, allPanes, currentSpace, idx);
+
       return h_flex()
-        .id(`space-${s.id}`)
+        .id(`tab-${tab.id}`)
         .h(28)
-        .px(10)
+        .pl(10)
+        .pr(6)
         .gap(7)
         .rounded(7)
         .items_center()
@@ -25,21 +64,67 @@ export default class SherlyBar extends View {
         .border_color(active ? (t.border ?? "#484e5a") : "#00000000")
         .text_color(active ? (t.foreground ?? "#ffffff") : (t.muted ?? "#a3a7af"))
         .hover((st) => st.bg(t.hover))
-        .on_mouse_down("left", stop)
-        .on_click(() => run("space.switch", { space: s.id }))
-        .child(div().text_size(12).font_medium().child(s.name || `Space ${idx + 1}`))
+        .on_hover((hovered, cx) => {
+          const next = hovered ? tab.id : null;
+          if (this.hoveredTab !== next) {
+            this.hoveredTab = next;
+            cx.notify();
+          }
+        })
+        .on_mouse_down("left", (e, cx) => {
+          cx.stop_propagation();
+          if (e.click_count === 2) run("tab.rename", { id: tab.id });
+        })
+        .on_mouse_down("right", (_e, cx) => {
+          cx.stop_propagation();
+          if (currentSpace) {
+            openOverlay({
+              mod: "menu",
+              kind: "popup",
+              width: 200,
+              props: { tab: "tab", target: { id: tab.id, space: currentSpace.id } },
+            });
+          }
+        })
+        .on_click(() => run("tab.select", { id: tab.id }))
         .child(
           div()
-            .size(16)
-            .rounded_full()
-            .bg(active ? (t.surface ?? "#202226") : (t.chrome ?? "#18191c"))
-            .text_size(9.5)
-            .font_bold()
-            .text_color(active ? (t.foreground ?? "#ffffff") : (t.dim ?? "#71757e"))
-            .flex()
-            .items_center()
-            .justify_center()
-            .child(String(idx + 1)),
+            .text_size(12)
+            .font_medium()
+            .text_color(active ? (t.foreground ?? "#ffffff") : (t.muted ?? "#a3a7af"))
+            .child(name),
+        )
+        // Right circular badge: '×' close button when active or hovered; index number when inactive
+        .child(
+          isHovered || active
+            ? div()
+                .id(`tab-close-${tab.id}`)
+                .size(18)
+                .rounded_full()
+                .bg(active ? (t.surface ?? "#202226") : (t.raised ?? "#282a2e"))
+                .flex()
+                .items_center()
+                .justify_center()
+                .cursor_pointer()
+                .text_color(t.dim ?? "#8b8f95")
+                .hover((s) => s.bg(t.hover).text_color(t.foreground))
+                .on_mouse_down("left", stop)
+                .on_click((_e, cx) => {
+                  cx.stop_propagation();
+                  run("tab.close", { id: tab.id, confirmed: true });
+                })
+                .child(svg("mods/workspace-chrome/x.svg").size(10))
+            : div()
+                .size(18)
+                .rounded_full()
+                .bg(t.surface ?? "#202226")
+                .text_size(10)
+                .font_medium()
+                .text_color(t.dim ?? "#71757e")
+                .flex()
+                .items_center()
+                .justify_center()
+                .child(String(idx + 1)),
         );
     });
 
@@ -52,7 +137,7 @@ export default class SherlyBar extends View {
       .bg(t.chrome)
       .border_b(1)
       .border_color(t.border)
-      // Left section: Tabs + Plus button
+      // Left section: Terminal Tabs + Plus button (new terminal)
       .child(
         h_flex()
           .items_center()
@@ -60,15 +145,20 @@ export default class SherlyBar extends View {
           .child(h_flex().gap(6).items_center().children(tabs))
           .child(
             div()
+              .id("btn-tab-new")
               .size(24)
               .rounded(5)
               .text_color(t.dim)
+              .cursor_pointer()
               .flex()
               .items_center()
               .justify_center()
               .hover((st) => st.bg(t.hover).text_color(t.foreground))
               .on_mouse_down("left", stop)
-              .on_click(() => run("space.new"))
+              .on_click(() => {
+                const focusedCwd = allPanes.find((p) => p.focused)?.cwd;
+                run("tab.new", focusedCwd ? { folder: focusedCwd } : {});
+              })
               .child(svg("mods/workspace-chrome/plus.svg").size(12)),
           ),
       )

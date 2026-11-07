@@ -136,6 +136,7 @@ fn launch_failure(record: &Value, output: &str) -> Option<String> {
 /// sidebar, tab bar).
 const LAYOUTS: &[(&str, &str)] = &[
     ("main", include_str!("../defaults/layouts/main.json")),
+    ("sherly", include_str!("../defaults/layouts/sherly.json")),
     ("terminals", include_str!("../defaults/layouts/terminals.json")),
     ("win98", include_str!("../defaults/layouts/win98.json")),
 ];

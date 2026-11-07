@@ -16,7 +16,7 @@ env:
 jobs:
   release-intel-mac:
     name: Build & Release (macOS Intel x86_64)
-    runs-on: macos-13
+    runs-on: macos-latest
     defaults:
       run:
         shell: bash
@@ -28,6 +28,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: x86_64-apple-darwin
 
       - uses: mlugg/setup-zig@v2
         with:
@@ -35,7 +36,7 @@ jobs:
 
       - name: Build and Package Intel Mac
         run: |
-          bash scripts/package
+          bash scripts/package x86_64-apple-darwin
           if [[ -f "dist/herdr-app-macos-x86_64.tar.gz" ]]; then
             tar -xzf "dist/herdr-app-macos-x86_64.tar.gz" -C dist
             (cd dist && zip -r -y "Herdr-Intel-zh-TW.zip" Herdr.app && rm -rf Herdr.app)
